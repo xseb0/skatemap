@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#16191A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Skate Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="style.css?v=14">
+</head>
+<body>
+<div id="map"></div>
+
+<div class="top">
+  <div class="searchbox">
+    <span class="logo">Skate<span>map</span></span>
+    <input id="q" type="text" inputmode="search" enterkeyhint="search" placeholder="Search places or spots" autocomplete="off" aria-label="Search places or spots">
+    <button class="iconbtn" id="qClear" aria-label="Clear search" hidden><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="results" id="results" hidden></div>
+  <div class="chips" id="chips"></div>
+</div>
+
+<div class="fab">
+  <button class="iconbtn" id="bLayers" aria-label="Map layers" title="Map layers"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
+  <button class="iconbtn" id="bLocate" aria-label="Show my location" title="Show my location"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+  <button class="iconbtn" id="bRoute" aria-label="Plan a route" title="Plan a route"><svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.5 19H15a3.5 3.5 0 000-7H9a3.5 3.5 0 010-7h6.5"/></svg></button>
+  <button class="iconbtn" id="bAdd" aria-label="Add my own spot" title="Add my own spot"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button class="iconbtn" id="bScan" aria-label="Find spots in this area" title="Find spots in this area"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5"/></svg></button>
+</div>
+
+<div class="pop" id="layers" hidden>
+  <h3>Map</h3>
+  <div class="basegrid" id="basegrid"></div>
+  <div class="row"><label><input type="checkbox" id="satOn"> Satellite overlay</label></div>
+  <input type="range" id="satOp" min="0.1" max="1" step="0.05" value="0.6" aria-label="Satellite overlay opacity">
+  <div class="row"><label><input type="checkbox" id="surfOn"> Surface quality on paths</label></div>
+  <div class="legend"><span><b style="background:var(--q3)"></b>smooth</span><span><b style="background:var(--q2)"></b>okay</span><span><b style="background:var(--q1)"></b>rough</span></div>
+  <h3>Rating</h3>
+  <div class="seg" id="minRate"><button data-v="1">All</button><button data-v="3">3+</button><button data-v="4">4+</button><button data-v="5">5</button></div>
+  <h3>My spots and notes</h3>
+  <div class="row" style="justify-content:flex-start"><button class="btn" id="bExport">Copy backup</button><button class="btn" id="bImport">Paste backup</button></div>
+  <p class="small" id="ioMsg" style="margin:0">Saved in this browser. Copy a backup to move them to another device.</p>
+</div>
+
+<div class="sheet collapsed" id="sheet">
+  <button class="bar" id="sheetBar" aria-expanded="false"><span class="grab"></span><strong id="sheetTitle">Spots nearby</strong><span class="sub" id="sheetSub"></span>
+    <svg viewBox="0 0 24 24" width="20" height="20" style="stroke:currentColor;fill:none;stroke-width:2"><path d="M6 15l6-6 6 6"/></svg></button>
+  <div class="list" id="list"></div>
+</div>
+
+<div class="card" id="card" hidden></div>
+<div class="hint" id="hint" hidden><span id="hintText"></span><button id="hintX">Cancel</button></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js?v=14"></script>
+</body>
+</html>
