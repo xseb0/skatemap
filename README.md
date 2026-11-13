@@ -1,5 +1,8 @@
 # Skate Map
 
+Live: https://xseb0.github.io/skatemap/ (GitHub Pages, repo xseb0/skatemap, branch `gh-pages` = the `web/` folder).
+Deploy after changes: commit, then `git push && git subtree push --prefix web origin gh-pages`. Bump `?v=` in `web/index.html` and the region `?v=` in `web/app.js` so phones load the new files.
+
 A web map for finding skate spots: stairs (normal and long, low steps), hills, smooth paths, routes, skateparks, pump tracks, ledges, curbs, rails, plazas and flat ground for powerslides.
 
 - `web/` – the map (Leaflet). Open via the `skatekartan` entry in `01_Privat/.claude/launch.json` → http://localhost:8472/web/
