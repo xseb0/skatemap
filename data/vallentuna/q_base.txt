@@ -1,0 +1,10 @@
+[out:json][timeout:240];
+(
+  way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|pedestrian|cycleway|footway|path|track|bridleway)$"](59.42,17.98,59.60,18.20);
+  way["natural"="water"](59.42,17.98,59.60,18.20);
+  relation["natural"="water"](59.42,17.98,59.60,18.20);
+  way["waterway"~"river|stream"](59.42,17.98,59.60,18.20);
+  way["railway"="rail"](59.42,17.98,59.60,18.20);
+  way["railway"="narrow_gauge"](59.42,17.98,59.60,18.20);
+);
+out tags geom;

@@ -1,0 +1,6 @@
+# Raw Overpass answers: large and refetchable with data/<region>/q_*.txt
+data/*/base.json
+data/*/spots.json
+data/*/*.log
+v1/skatekartan.html
+.DS_Store

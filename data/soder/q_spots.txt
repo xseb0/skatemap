@@ -1,0 +1,17 @@
+[out:json][timeout:180];
+(
+  nwr["sport"~"skateboard|roller|bmx|pump"](59.24,17.98,59.32,18.20);
+  nwr["name"~"[Pp]ump|[Ss]kate|[Ss]katepark"](59.24,17.98,59.32,18.20);
+  way["highway"="steps"](59.24,17.98,59.32,18.20);
+  nwr["leisure"="pitch"]["sport"~"basketball|multi|tennis|hockey|futsal|streetball"](59.24,17.98,59.32,18.20);
+  nwr["amenity"="parking"]["parking"!~"underground|multi-storey|rooftop"](59.24,17.98,59.32,18.20);
+  nwr["place"="square"](59.24,17.98,59.32,18.20);
+  way["highway"="pedestrian"](59.24,17.98,59.32,18.20);
+  way["area:highway"="pedestrian"](59.24,17.98,59.32,18.20);
+  nwr["amenity"="school"](59.24,17.98,59.32,18.20);
+  node["amenity"="bench"]["material"~"concrete|stone|granite|metal|steel"](59.24,17.98,59.32,18.20);
+  nwr["barrier"="kerb"](59.24,17.98,59.32,18.20);
+  way["barrier"~"guard_rail|handrail"](59.24,17.98,59.32,18.20);
+  way["highway"~"cycleway|footway|path|pedestrian|track|service|residential|living_street|unclassified|tertiary"]["incline"](59.24,17.98,59.32,18.20);
+);
+out tags geom;

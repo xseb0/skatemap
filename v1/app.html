@@ -1,0 +1,395 @@
+<title>Skatekartan Vallentuna–Täby</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/*LEAFLETCSS*/
+/* Layout: kartan fyller skärmen, panel till vänster på dator och som nedre halva på mobil. */
+:root{
+  --bg:#ECEEEA; --panel:#F8F9F6; --ink:#1A1D1B; --muted:#5E655F; --line:#D3D7D0;
+  --ground:#E4E6E1; --road:#FFFFFF; --roadedge:#C9CDC5; --path:#B9BEB5; --water:#BCD3DE; --rail:#9AA09A;
+  --accent:#E2560F; --accent-ink:#FFFFFF;
+  --c-park:#2563C9; --c-pump:#7A3DC8; --c-steps:#D1263B; --c-lang:#C2187A; --c-kort:#E7792B;
+  --c-curb:#0E8C83; --c-rail:#4C6A7D; --c-yta:#C08A00; --c-torg:#2E8B3E; --c-backe:#E2560F; --c-rutt:#1B6FE0; --c-egen:#111;
+  --q3:#1F9D55; --q2:#D9A21B; --q1:#C8352E;
+  --f-display:"Bricolage Grotesque", "Inter", system-ui, sans-serif;
+  --f-body:"Inter", system-ui, -apple-system, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141715; --panel:#1B1F1C; --ink:#E9ECE6; --muted:#9AA39B; --line:#2C322D;
+  --ground:#1A1E1B; --road:#3A403B; --roadedge:#262B27; --path:#4C534D; --water:#1E3440; --rail:#56605A;
+  --accent:#FF7A33; --accent-ink:#1A0E06;
+  --c-park:#5B95FF; --c-pump:#B184FF; --c-steps:#FF5A6B; --c-lang:#FF5DB4; --c-kort:#FFA05C;
+  --c-curb:#3CC9BD; --c-rail:#8FB2C6; --c-yta:#F2C23D; --c-torg:#5CC46D; --c-backe:#FF7A33; --c-rutt:#5AA2FF; --c-egen:#fff;
+  --q3:#3DD47E; --q2:#F2C23D; --q1:#FF6A5E; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141715; --panel:#1B1F1C; --ink:#E9ECE6; --muted:#9AA39B; --line:#2C322D;
+  --ground:#1A1E1B; --road:#3A403B; --roadedge:#262B27; --path:#4C534D; --water:#1E3440; --rail:#56605A;
+  --accent:#FF7A33; --accent-ink:#1A0E06;
+  --c-park:#5B95FF; --c-pump:#B184FF; --c-steps:#FF5A6B; --c-lang:#FF5DB4; --c-kort:#FFA05C;
+  --c-curb:#3CC9BD; --c-rail:#8FB2C6; --c-yta:#F2C23D; --c-torg:#5CC46D; --c-backe:#FF7A33; --c-rutt:#5AA2FF; --c-egen:#fff;
+  --q3:#3DD47E; --q2:#F2C23D; --q1:#FF6A5E; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;overflow:hidden}
+.app{display:grid;grid-template-columns:380px 1fr;height:100%}
+#map{height:100%;background:var(--ground);order:2}
+.leaflet-container{background:var(--ground);font-family:var(--f-body)}
+.panel{order:1;display:flex;flex-direction:column;min-height:0;background:var(--panel);border-right:1px solid var(--line)}
+.head{padding-block:14px 10px;padding-inline:max(16px,env(safe-area-inset-left,0px)) 16px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+h1{font-family:var(--f-display);font-weight:800;font-size:22px;letter-spacing:-.02em;margin:0;line-height:1}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);font-size:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:5px 10px 5px 8px;font:500 12.5px var(--f-body);cursor:pointer}
+.chip .dot{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.chip .n{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.chip[aria-pressed="false"]{opacity:.45}
+.chip[aria-pressed="false"] .dot{background:transparent;box-shadow:inset 0 0 0 2px var(--c)}
+.chip:focus-visible,.btn:focus-visible,.item:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tools{display:flex;flex-wrap:wrap;gap:6px}
+.btn{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:7px 10px;font:600 12.5px var(--f-body);cursor:pointer}
+.btn.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.toggle{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.list{overflow-y:auto;min-height:0;flex:1}
+.item{display:grid;grid-template-columns:12px 1fr auto;gap:10px;align-items:start;padding:10px 16px;padding-left:max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;width:100%;text-align:left;color:inherit;font:inherit}
+.item:hover,.item.sel{background:var(--bg)}
+.item .dot{width:12px;height:12px;border-radius:50%;background:var(--c);margin-top:3px}
+.item .t{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .w{color:var(--muted);font-size:12px;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.item .meta{text-align:right;font-family:var(--f-mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.stars{letter-spacing:1px;color:var(--accent);font-family:var(--f-mono);font-size:11px}
+.stars i{color:var(--line);font-style:normal}
+.tag{display:inline-block;font:600 10px var(--f-body);text-transform:uppercase;letter-spacing:.06em;padding:1px 6px;border-radius:4px;background:var(--bg);color:var(--muted);margin-left:6px;vertical-align:1px}
+.tag.bra{background:var(--q3);color:#fff}.tag.ok{background:var(--q2);color:#1a1300}.tag.dalig{background:var(--q1);color:#fff}
+.empty{padding:24px 16px;color:var(--muted)}
+/* detaljkort */
+.card{position:absolute;z-index:1000;right:max(12px,env(safe-area-inset-right,0px));top:12px;width:340px;max-height:calc(100% - 24px);overflow:auto;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.18);padding:16px;display:flex;flex-direction:column;gap:12px}
+.card h2{font-family:var(--f-display);font-weight:800;font-size:19px;letter-spacing:-.01em;margin:0;text-wrap:balance;padding-right:28px}
+.card .x{position:absolute;right:10px;top:10px;border:0;background:var(--bg);color:var(--ink);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px}
+.kind{font:600 11px var(--f-body);text-transform:uppercase;letter-spacing:.08em;color:var(--c)}
+.why{line-height:1.45}
+dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:13px}
+dt{color:var(--muted)} dd{margin:0;font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums}
+.links{display:flex;flex-wrap:wrap;gap:6px}
+.links a{color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-weight:600;font-size:12px}
+.links a:hover{border-color:var(--accent)}
+.prof{width:100%;height:70px;display:block}
+.note{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.note .row{display:flex;gap:6px;flex-wrap:wrap}
+textarea,input[type=text],select{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:8px;font:13px var(--f-body)}
+textarea{min-height:56px;resize:vertical}
+.small{font-size:11.5px;color:var(--muted);line-height:1.4}
+.hint{position:absolute;z-index:1000;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--panel);padding:9px 14px;border-radius:999px;font-weight:600;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.25);max-width:calc(100% - 32px);text-align:center}
+.legend{position:absolute;z-index:900;left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:11px;display:flex;gap:10px;align-items:center}
+.legend b{display:inline-block;width:16px;height:4px;border-radius:2px;vertical-align:middle;margin-right:4px}
+.pin{width:16px;height:16px;border-radius:50%;background:var(--c);border:2.5px solid var(--panel);box-shadow:0 1px 4px rgba(0,0,0,.35);box-sizing:border-box}
+.pin.s5{width:20px;height:20px}
+.pin.me{background:var(--ink);border-color:var(--accent)}
+.pin.egen{border-radius:4px;transform:rotate(45deg)}
+.mapwrap{position:relative;order:2;min-height:0}
+.mapwrap #map{position:absolute;inset:0}
+.leaflet-control-zoom a{background:var(--panel)!important;color:var(--ink)!important;border-color:var(--line)!important}
+.leaflet-control-attribution{background:color-mix(in srgb,var(--panel) 80%,transparent)!important;color:var(--muted)!important;font-size:10px}
+.leaflet-control-attribution a{color:var(--muted)!important}
+@media (max-width:760px){
+  .app{grid-template-columns:1fr;grid-template-rows:56% 44%}
+  .mapwrap{order:1}.panel{order:2;border-right:0;border-top:1px solid var(--line)}
+  .card{left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));top:8px;width:auto;max-height:calc(100% - 16px);padding:14px}
+  .legend{display:none}
+  .head{padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app">
+  <aside class="panel">
+    <div class="head">
+      <div class="brand"><h1>Skate<span>kartan</span></h1><span class="sub" id="count"></span></div>
+      <div class="chips" id="chips"></div>
+      <div class="tools">
+        <button class="btn" id="bSurf" aria-pressed="false">Underlag</button>
+        <button class="btn" id="bRoute">Planera rutt</button>
+        <button class="btn" id="bMe">Sätt min plats</button>
+        <button class="btn" id="bAdd">+ Egen spot</button>
+        <label class="toggle"><input type="checkbox" id="best"> Bara 4–5</label>
+      </div>
+    </div>
+    <div class="list" id="list"></div>
+  </aside>
+  <div class="mapwrap">
+    <div id="map"></div>
+    <div class="legend" id="legend" hidden><span><b style="background:var(--q3)"></b>slät asfalt</span><span><b style="background:var(--q2)"></b>okej</span><span><b style="background:var(--q1)"></b>knölig</span></div>
+    <div class="hint" id="hint" hidden></div>
+    <div class="card" id="card" hidden></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>/*DATAJS*/</script>
+<script>
+(function(){
+const S = window.SKATE;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const KINDS = {
+  park:{l:"Skateparker",one:"Skatepark",c:"--c-park"},
+  pump:{l:"Pumptracks",one:"Pumptrack / cykelpark",c:"--c-pump"},
+  steps:{l:"Trappor",one:"Trappa",c:"--c-steps"},
+  backe:{l:"Backar",one:"Backe",c:"--c-backe"},
+  rutt:{l:"Rutter",one:"Ruttförslag",c:"--c-rutt"},
+  yta:{l:"Powerslide-ytor",one:"Slät yta",c:"--c-yta"},
+  torg:{l:"Torg & gågator",one:"Torg / gågata",c:"--c-torg"},
+  curb:{l:"Kanter & ledges",one:"Kant / ledge",c:"--c-curb"},
+  rail:{l:"Räcken",one:"Räcke",c:"--c-rail"},
+  egen:{l:"Mina spots",one:"Egen spot",c:"--c-egen"}
+};
+const SUBC = {lang:"--c-lang", kort:"--c-kort"};
+const SUBL = {lang:"Trappa med långa, låga steg", kort:"Kort trappa: hoppträning", trappa:"Trappa", parkering:"Stor parkering", plan:"Plan / court", skolgard:"Skolgård", lagom:"Lagom backe", "rejäl":"Rejäl backe", brant:"Brant backe", bank:"Bänk", kant:"Kantsten"};
+const colorOf = s => css(SUBC[s.sub] || KINDS[s.k].c);
+
+let store = {}; try{ store = JSON.parse(localStorage.getItem("skatekartan")||"{}"); }catch(e){}
+const save = () => { try{ localStorage.setItem("skatekartan", JSON.stringify(store)); }catch(e){} };
+const on = Object.assign({park:1,pump:1,steps:1,backe:1,rutt:0,yta:0,torg:1,curb:1,rail:0,egen:1}, store.on||{});
+let me = store.me || null, notes = {}, egna = [], db = null;
+
+// ---- karta
+const map = L.map("map",{preferCanvas:true, zoomControl:true, minZoom:11, maxZoom:19, attributionControl:true})
+  .setView(store.view?.c || [59.505, 18.08], store.view?.z || 13);
+map.attributionControl.setPrefix("").addAttribution("Kartdata © OpenStreetMap-bidragsgivare (ODbL) · höjder EU-DEM");
+const [s,w,n,e] = S.bbox; map.setMaxBounds([[s-.05,w-.1],[n+.05,e+.1]]);
+const R = L.canvas({padding:.3});
+const baseLayer = L.layerGroup().addTo(map);
+function drawBase(){
+  baseLayer.clearLayers();
+  L.polygon(S.water,{renderer:R,stroke:false,fillColor:css("--water"),fillOpacity:1,interactive:false}).addTo(baseLayer);
+  if(S.base.w) L.polyline(S.base.w,{renderer:R,color:css("--water"),weight:2,interactive:false}).addTo(baseLayer);
+  const st = [["x","--path",1,[2,4]],["f","--path",1.2,null],["s","--road",2,null],["r","--road",3.5,null],["c","--path",1.6,null],["t","--road",5,null],["p","--road",6.5,null],["m","--road",8,null]];
+  for(const [k,col,wt,da] of st){ if(!S.base[k]) continue;
+    if(["r","t","p","m"].includes(k)) L.polyline(S.base[k],{renderer:R,color:css("--roadedge"),weight:wt+1.5,interactive:false}).addTo(baseLayer);
+    L.polyline(S.base[k],{renderer:R,color:css(col),weight:wt,dashArray:da,interactive:false,lineCap:"round"}).addTo(baseLayer);
+  }
+  L.polyline(S.rail,{renderer:R,color:css("--rail"),weight:2,dashArray:[6,4],interactive:false}).addTo(baseLayer);
+}
+drawBase();
+const surfLayer = L.layerGroup();
+function drawSurf(){ surfLayer.clearLayers();
+  for(const q of ["1","2","3"]) L.polyline(S.surf[q],{renderer:R,color:css("--q"+q),weight:q==="3"?3:2.5,opacity:.95,interactive:false}).addTo(surfLayer);
+}
+drawSurf();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{drawBase();drawSurf();render();});
+new MutationObserver(()=>{drawBase();drawSurf();render();}).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+const spotLayer = L.layerGroup().addTo(map), hiLayer = L.layerGroup().addTo(map), routeLayer = L.layerGroup().addTo(map);
+let meMarker = null;
+const icon = (s) => L.divIcon({className:"", iconSize:null, html:`<div class="pin ${s.s>=5?"s5":""} ${s.k==="egen"?"egen":""}" style="--c:${colorOf(s)}"></div>`});
+
+// ---- hjälpare
+const dist = (a,b)=>{const r=Math.PI/180,x=(b[1]-a[1])*r*Math.cos((a[0]+b[0])/2*r),y=(b[0]-a[0])*r;return 6371000*Math.hypot(x,y);};
+const fmtD = m => m<1000? `${Math.round(m/10)*10} m` : `${(m/1000).toFixed(1)} km`;
+const stars = n => "●".repeat(n)+"<i>"+"●".repeat(5-n)+"</i>";
+const esc = t => String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const all = () => S.spots.concat(egna);
+
+// ---- chips
+const chipsEl = document.getElementById("chips");
+function drawChips(){
+  const c = {}; for(const s of all()) c[s.k]=(c[s.k]||0)+1;
+  chipsEl.innerHTML = Object.entries(KINDS).filter(([k])=>c[k]||k==="egen").map(([k,v])=>
+    `<button class="chip" data-k="${k}" aria-pressed="${!!on[k]}" style="--c:var(${v.c})"><span class="dot"></span>${v.l}<span class="n">${c[k]||0}</span></button>`).join("");
+}
+chipsEl.addEventListener("click",ev=>{const b=ev.target.closest(".chip"); if(!b) return; const k=b.dataset.k; on[k]=on[k]?0:1; store.on=on; save(); drawChips(); render();});
+const best = document.getElementById("best"); best.checked = !!store.best;
+best.addEventListener("change",()=>{store.best=best.checked;save();render();});
+
+// ---- lista + markörer
+let sel = null;
+function visible(){
+  return all().filter(s=>on[s.k] && (!best.checked || s.s>=4 || s.k==="egen"));
+}
+function render(){
+  spotLayer.clearLayers();
+  const vs = visible();
+  for(const s of vs){
+    if(s.k==="rutt") { L.polyline(s.g,{renderer:R,color:colorOf(s),weight:4,opacity:.55}).on("click",()=>select(s)).addTo(spotLayer); }
+    else if(s.k==="backe" && s.g) L.polyline(s.g,{renderer:R,color:colorOf(s),weight:5,opacity:.8}).on("click",()=>select(s)).addTo(spotLayer);
+    L.marker(s.p,{icon:icon(s),title:s.n,keyboard:false}).on("click",()=>select(s)).addTo(spotLayer);
+  }
+  const ref = me || map.getCenter() && [map.getCenter().lat,map.getCenter().lng];
+  vs.forEach(s=>s._d=dist(ref,s.p));
+  vs.sort((a,b)=> a._d-b._d);
+  const list = document.getElementById("list");
+  document.getElementById("count").textContent = `${vs.length} platser`;
+  if(!vs.length){ list.innerHTML = `<div class="empty">Inga platser med de här filtren. Slå på fler kategorier ovan.</div>`; return; }
+  list.innerHTML = vs.slice(0,150).map(s=>{
+    const nt = notes[s.id];
+    return `<button class="item ${sel&&sel.id===s.id?"sel":""}" data-id="${esc(s.id)}" style="--c:${colorOf(s)}"><span class="dot"></span>
+      <span style="min-width:0"><div class="t">${esc(s.n)}${nt&&nt.status?`<span class="tag ${nt.status}">${{bra:"bra",ok:"ok",dalig:"skit"}[nt.status]}</span>`:""}</div><div class="w">${esc(s.w)}</div></span>
+      <span class="meta">${fmtD(s._d)}<br><span class="stars">${stars(s.s)}</span></span></button>`}).join("") +
+    (vs.length>150?`<div class="empty">Visar de 150 närmaste av ${vs.length}. Flytta kartan eller sätt din plats för att se andra.</div>`:"");
+}
+document.getElementById("list").addEventListener("click",ev=>{const b=ev.target.closest(".item"); if(!b) return; const s=all().find(x=>x.id===b.dataset.id); if(s){ select(s,true);} });
+let moveT; map.on("moveend",()=>{ clearTimeout(moveT); moveT=setTimeout(()=>{ store.view={c:[map.getCenter().lat,map.getCenter().lng],z:map.getZoom()}; save(); if(!me) render(); },250);});
+
+// ---- detaljkort
+const card = document.getElementById("card");
+function profSVG(p, col){
+  if(!p||p.length<2) return "";
+  const W=300,H=70,mx=Math.max(...p,1); const pts=p.map((v,i)=>`${(i/(p.length-1)*W).toFixed(1)},${(H-4-(v/mx)*(H-14)).toFixed(1)}`);
+  return `<svg class="prof" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Höjdprofil, ${mx.toFixed(0)} m skillnad">
+    <polygon points="0,${H} ${pts.join(" ")} ${W},${H}" fill="${col}" fill-opacity=".18"/><polyline points="${pts.join(" ")}" fill="none" stroke="${col}" stroke-width="2"/>
+    <text x="4" y="12" font-size="10" fill="${css("--muted")}" font-family="JetBrains Mono, monospace">${mx.toFixed(0)} m höjdskillnad</text></svg>`;
+}
+function select(s, fly){
+  sel = s; hiLayer.clearLayers();
+  const col = colorOf(s);
+  if(s.g) L.polyline(s.g,{renderer:R,color:col,weight:8,opacity:.9}).addTo(hiLayer);
+  if(s.g && s.k!=="steps") L.polyline(s.g,{renderer:R,color:"#fff",weight:2,opacity:.9,dashArray:[2,6]}).addTo(hiLayer);
+  if(fly){ if(s.g && s.g.length>2 && s.k!=="steps") map.fitBounds(L.latLngBounds(s.g),{padding:[40,40],maxZoom:17}); else map.setView(s.p, Math.max(map.getZoom(),17)); }
+  const nt = notes[s.id]||{};
+  const [la,lo] = s.p;
+  const dir = s.k==="backe"&&s.g? (Math.atan2((s.g[1][1]-s.g[0][1])*Math.cos(la*Math.PI/180), s.g[1][0]-s.g[0][0])*180/Math.PI+360)%360 : 0;
+  card.innerHTML = `<button class="x" aria-label="Stäng">×</button>
+    <div><div class="kind" style="--c:${col}">${esc(SUBL[s.sub]||KINDS[s.k].one)}</div><h2>${esc(s.n)}</h2><div class="stars" style="margin-top:4px">${stars(s.s)} <span class="small">uppskattat ur kartdata</span></div></div>
+    <div class="why">${esc(s.w)}</div>
+    ${s.prof?profSVG(s.prof,col):""}
+    ${s.i?`<dl>${Object.entries(s.i).map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`:""}
+    ${s.k==="rutt"?`<button class="btn" id="cOpenR">Visa hela rutten</button>`:""}
+    <div class="links">
+      <a href="https://www.google.com/maps?layer=c&cbll=${la},${lo}&cbp=12,${dir.toFixed(0)},0,0,0" target="_blank" rel="noopener">Street View</a>
+      <a href="https://www.google.com/maps/search/?api=1&query=${la},${lo}" target="_blank" rel="noopener">Google Maps</a>
+      <a href="https://www.google.com/maps/dir/?api=1&destination=${la},${lo}&travelmode=walking" target="_blank" rel="noopener">Vägbeskrivning</a>
+      ${s.osm?`<a href="https://www.openstreetmap.org/${s.osm}" target="_blank" rel="noopener">OSM</a>`:""}
+    </div>
+    <div class="note" ${s.id==="plan"?"hidden":""}>
+      <div class="small">Har du varit här? Spara vad du tyckte.</div>
+      <div class="row">
+        ${["bra","ok","dalig"].map(v=>`<button class="btn ${nt.status===v?"on":""}" data-st="${v}">${{bra:"Bra spot",ok:"Okej",dalig:"Skit"}[v]}</button>`).join("")}
+      </div>
+      <textarea id="nText" placeholder="T.ex. 6 steg, ledstången är låg på vänster sida, grus vid landningen">${esc(nt.text||"")}</textarea>
+      <div class="row"><button class="btn primary" id="nSave">Spara anteckning</button>${s.k==="egen"?`<button class="btn" id="nDel">Ta bort spoten</button>`:""}<span class="small" id="nMsg"></span></div>
+    </div>`;
+  card.hidden = false;
+  card.querySelector(".x").onclick = closeCard;
+  const r = card.querySelector("#cOpenR"); if(r) r.onclick=()=>map.fitBounds(L.latLngBounds(s.g),{padding:[30,30]});
+  card.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{ const v=b.dataset.st; saveNote(s,{status: nt.status===v?null:v}); });
+  if(s.id==="plan"){ document.querySelectorAll(".item.sel").forEach(x=>x.classList.remove("sel")); return; }
+  card.querySelector("#nSave").onclick=()=>saveNote(s,{text:card.querySelector("#nText").value.trim()});
+  const del = card.querySelector("#nDel"); if(del) del.onclick=()=>delEgen(s);
+  document.querySelectorAll(".item.sel").forEach(x=>x.classList.remove("sel"));
+  const li = document.querySelector(`.item[data-id="${CSS.escape(s.id)}"]`); if(li){ li.classList.add("sel"); li.scrollIntoView({block:"nearest"}); }
+}
+function closeCard(){ card.hidden=true; hiLayer.clearLayers(); sel=null; }
+
+// ---- anteckningar och egna spots (delad lagring via db, annars bara i den här webbläsaren)
+async function saveNote(s, patch){
+  const cur = Object.assign({}, notes[s.id]||{}, patch, {t: Date.now()});
+  notes[s.id] = cur; const msg = card.querySelector("#nMsg");
+  try{
+    if(db){ await db.collection("noter").doc(s.id.replace(/\//g,"_")).set({spot:s.id, status:cur.status||null, text:cur.text||"", t:cur.t}); if(msg) msg.textContent="Sparat"; }
+    else { store.notes = notes; save(); if(msg) msg.textContent="Sparat i den här webbläsaren"; }
+  }catch(e){ if(msg) msg.textContent = "Kunde inte spara: "+(e.message||e.code||"okänt fel"); }
+  if(sel && sel.id===s.id) select(s); render();
+}
+async function delEgen(s){
+  try{ if(db) await db.collection("egna").doc(s.id).delete(); else { store.egna=(store.egna||[]).filter(x=>x.id!==s.id); save(); egna=store.egna; } }catch(e){}
+  closeCard(); drawChips(); render();
+}
+
+// ---- lägen: min plats, egen spot, ruttplanering
+const hint = document.getElementById("hint");
+let mode = null, rA = null;
+function setMode(m, text){
+  mode = m; hint.hidden = !m; hint.textContent = text||"";
+  for(const [id,mm] of [["bMe","me"],["bAdd","add"],["bRoute","route"]]) document.getElementById(id).classList.toggle("on", mode===mm);
+  map.getContainer().style.cursor = m? "crosshair" : "";
+}
+document.getElementById("bMe").onclick = ()=> setMode(mode==="me"?null:"me","Tryck på kartan där du är");
+document.getElementById("bAdd").onclick = ()=> setMode(mode==="add"?null:"add","Tryck där spoten ligger");
+document.getElementById("bRoute").onclick = ()=>{ rA=null; routeLayer.clearLayers(); setMode(mode==="route"?null:"route","Tryck på startpunkten"); };
+const bSurf = document.getElementById("bSurf");
+function setSurf(v){ bSurf.classList.toggle("on",v); bSurf.setAttribute("aria-pressed",v); document.getElementById("legend").hidden=!v; if(v) surfLayer.addTo(map); else surfLayer.remove(); store.surf=v; save(); }
+bSurf.onclick = ()=> setSurf(!store.surf); setSurf(!!store.surf);
+function placeMe(){ if(meMarker) meMarker.remove(); if(me) meMarker = L.marker(me,{icon:L.divIcon({className:"",iconSize:null,html:'<div class="pin me"></div>'}),title:"Min plats",zIndexOffset:1000}).addTo(map); }
+placeMe();
+
+map.on("click", ev=>{
+  const p = [+ev.latlng.lat.toFixed(5), +ev.latlng.lng.toFixed(5)];
+  if(mode==="me"){ me=p; store.me=p; save(); placeMe(); setMode(null); render(); return; }
+  if(mode==="add"){ setMode(null); addForm(p); return; }
+  if(mode==="route"){
+    if(!rA){ rA=p; routeLayer.clearLayers(); L.circleMarker(p,{radius:7,color:css("--c-rutt"),fillOpacity:1}).addTo(routeLayer); hint.textContent="Tryck på målet"; return; }
+    const res = plan(rA,p); setMode(null);
+    if(!res){ hint.hidden=false; hint.textContent="Hittade ingen väg på slät mark mellan punkterna"; setTimeout(()=>hint.hidden=true,3000); return; }
+    showRoute(res); return;
+  }
+});
+function addForm(p){
+  sel=null; hiLayer.clearLayers(); L.circleMarker(p,{radius:8,color:css("--accent"),fillOpacity:.6}).addTo(hiLayer);
+  card.innerHTML = `<button class="x" aria-label="Stäng">×</button><h2>Ny spot</h2>
+    <label class="small" for="eName">Namn</label><input type="text" id="eName" placeholder="T.ex. Låga trappan vid biblioteket">
+    <label class="small" for="eSub">Vad finns här?</label>
+    <select id="eSub"><option>Trappa</option><option>Trappa med långa steg</option><option>Låg rail</option><option>Grindbar kant / curb</option><option>Ledge / bänk</option><option>Backe</option><option>Powerslide-yta</option><option>Hoppställe / drop</option><option>Bowl / transition</option><option>Annat</option></select>
+    <label class="small" for="eText">Anteckning</label><textarea id="eText" placeholder="Höjd, antal steg, underlag, när det är tomt"></textarea>
+    <div class="note" style="border:0;padding:0"><div class="row"><button class="btn primary" id="eSave">Spara spot</button><span class="small" id="eMsg"></span></div></div>`;
+  card.hidden=false; card.querySelector(".x").onclick=closeCard; card.querySelector("#eName").focus();
+  card.querySelector("#eSave").onclick = async ()=>{
+    const n = card.querySelector("#eName").value.trim() || card.querySelector("#eSub").value;
+    const d = {k:"egen", n, sub:"", p, s:5, w: card.querySelector("#eSub").value + (card.querySelector("#eText").value.trim()? ": "+card.querySelector("#eText").value.trim():""), t: Date.now()};
+    try{
+      if(db){ const ref = await db.collection("egna").add(d); d.id=ref.id; }
+      else { d.id="e"+Date.now(); store.egna=(store.egna||[]).concat([d]); save(); egna=store.egna; }
+      on.egen=1; drawChips(); render(); select(egna.find(x=>x.id===d.id)||d);
+    }catch(e){ card.querySelector("#eMsg").textContent="Kunde inte spara: "+(e.message||e.code||"okänt fel"); }
+  };
+}
+
+// ---- ruttplanerare (Dijkstra över slät GC-väg, villagator som nödlänk)
+const G = S.graph, NN = G.n.length, adj = Array.from({length:NN},()=>[]);
+for(const [a,b,l,q] of G.e){ const c = l*(q>=3?1:q===2?1.6:q===1?3:2.4); adj[a].push([b,c,l,q]); adj[b].push([a,c,l,q]); }
+function nearestNode(p){ let bi=-1,bd=1e18; for(let i=0;i<NN;i++){ const n=G.n[i], d=(n[0]-p[0])**2+((n[1]-p[1])*.5)**2; if(d<bd){bd=d;bi=i;} } return bi; }
+function plan(A,B){
+  const a=nearestNode(A), b=nearestNode(B), D=new Float64Array(NN).fill(Infinity), P=new Int32Array(NN).fill(-1), Q=new Int32Array(NN).fill(-1);
+  D[a]=0; const h=[[0,a]];
+  const push=(x)=>{h.push(x);let i=h.length-1;while(i>0){const p=(i-1)>>1;if(h[p][0]<=h[i][0])break;[h[p],h[i]]=[h[i],h[p]];i=p;}};
+  const pop=()=>{const t=h[0],l=h.pop();if(h.length){h[0]=l;let i=0;for(;;){let m=i,L=2*i+1,Rr=L+1;if(L<h.length&&h[L][0]<h[m][0])m=L;if(Rr<h.length&&h[Rr][0]<h[m][0])m=Rr;if(m===i)break;[h[m],h[i]]=[h[i],h[m]];i=m;}}return t;};
+  while(h.length){ const [d,u]=pop(); if(u===b) break; if(d>D[u]) continue;
+    for(const [v,c,l,q] of adj[u]){ const nd=d+c; if(nd<D[v]){D[v]=nd;P[v]=u;Q[v]=q;push([nd,v]);} } }
+  if(b!==a && P[b]<0) return null;
+  const path=[b], qs=[]; while(path[path.length-1]!==a){ const x=path[path.length-1]; qs.push(Q[x]); path.push(P[x]); }
+  path.reverse(); qs.reverse();
+  let L=0,good=0,road=0,climb=0,desc=0;
+  for(let i=0;i<path.length-1;i++){ const u=G.n[path[i]],v=G.n[path[i+1]], l=dist(u,v); L+=l; if(qs[i]>=3) good+=l; if(qs[i]===0) road+=l;
+    if(u[2]!=null&&v[2]!=null){ const dh=v[2]-u[2]; if(dh>0) climb+=dh; else desc-=dh; } }
+  return {path, L, good, road, climb, desc};
+}
+function showRoute(r){
+  routeLayer.clearLayers();
+  const g = r.path.map(i=>[G.n[i][0],G.n[i][1]]);
+  L.polyline(g,{renderer:R,color:css("--c-rutt"),weight:6,opacity:.9}).addTo(routeLayer);
+  L.circleMarker(g[0],{radius:7,color:css("--c-rutt"),fillOpacity:1}).addTo(routeLayer);
+  L.circleMarker(g[g.length-1],{radius:7,color:css("--accent"),fillOpacity:1}).addTo(routeLayer);
+  map.fitBounds(L.latLngBounds(g),{padding:[40,40]});
+  const hs = r.path.map(i=>G.n[i][2]).filter(x=>x!=null), mn=Math.min(...hs), step=Math.max(1,Math.floor(hs.length/80));
+  const s = {id:"plan", k:"rutt", n:"Din rutt", p:g[0], g, s: r.good/r.L>.75?5:r.good/r.L>.5?4:3,
+    w:`${fmtD(r.L)}, ${Math.round(r.good/r.L*100)} % slät asfalt på GC-väg${r.road>50?`, ${fmtD(r.road)} på villagata`:""}.`,
+    prof: hs.filter((_,i)=>i%step===0).map(x=>x-mn),
+    i:{"Längd":fmtD(r.L),"Uppför":`${Math.round(r.climb)} m`,"Nedför":`${Math.round(r.desc)} m`,"Slät GC-väg":`${Math.round(r.good/r.L*100)} %`,"Villagata":fmtD(r.road)}};
+  select(s);
+}
+
+// ---- start
+notes = store.notes || {}; egna = store.egna || [];
+drawChips(); render();
+(async()=>{
+  try{
+    if(!window.claude?.use) return;
+    const d = await window.claude.use("db"); if(!d) return;
+    db = d; let gotE=false, gotN=false;
+    db.collection("egna").onSnapshot(snap=>{ gotE=true; egna = snap.docs.map(x=>Object.assign({},x.data(),{id:x.id,k:"egen"})); drawChips(); render(); }, ()=>{});
+    db.collection("noter").onSnapshot(snap=>{ gotN=true; notes={}; for(const x of snap.docs){ const v=x.data(); notes[v.spot]=v; } render(); if(sel&&!card.hidden&&sel.id!=="plan"&&card.querySelector("#nText")&&document.activeElement!==card.querySelector("#nText")) select(sel); }, ()=>{});
+  }catch(e){ db=null; }
+})();
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ if(mode) setMode(null); else closeCard(); }});
+})();
+</script>
