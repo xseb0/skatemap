@@ -4,3 +4,4 @@ data/*/spots.json
 data/*/*.log
 v1/skatekartan.html
 .DS_Store
+data/dem_tiles/

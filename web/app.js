@@ -17,7 +17,7 @@ const KINDS = {
 };
 const SUBC = { long: "--c-long", short: "--c-short" };
 const SUBL = { smoothplaza: "Big smooth plaza", long: "Stairs with long, low steps", short: "Short stairs: jump practice", stairs: "Stairs", parking: "Large car park", court: "Court",
-  schoolyard: "Schoolyard", plan: "Planned route", mellow: "Mellow hill", solid: "Solid hill", steep: "Steep hill", bench: "Bench", curb: "Curb" };
+  schoolyard: "Schoolyard", plan: "Planned route", mellow: "Mellow hill", solid: "Solid hill", steep: "Steep hill", "very steep": "Very steep hill", bench: "Bench", curb: "Curb" };
 const NOTE = { good: "Good spot", ok: "It's okay", meh: "Not for me" };
 
 const $ = (id) => document.getElementById(id);
@@ -34,8 +34,9 @@ const save = () => { try { localStorage.setItem("skatemap", JSON.stringify(st));
 st.on = Object.assign({ park: 1, pump: 1, rink: 1, steps: 1, longsteps: 1, hill: 1, ledge: 1, rail: 1, plaza: 1, flat: 0, route: 0, mine: 1 }, st.on || {});
 const FDEF = { nMin: 0, nMax: 99, stepType: "any", rail: false, pavedEnds: false, hasCount: false,
   flatType: { court: true, parking: true, schoolyard: true }, surf: { asphalt: true, concrete: true, "court surface": true, "paving stones": true, paved: true, unknown: true },
-  hillLv: { gentle: true, mellow: true, solid: true, steep: true }, carFree: false, bigPlaza: false, noDirt: false, hub: "any" };
+  hillLv: { gentle: true, mellow: true, solid: true, steep: true, "very steep": true }, carFree: false, bigPlaza: false, noDirt: false, hub: "any" };
 st.f = Object.assign(JSON.parse(JSON.stringify(FDEF)), st.f || {});
+st.f.hillLv = Object.assign({}, FDEF.hillLv, st.f.hillLv);
 if (st.f.stepType === "long") st.f.stepType = "any";
 st.notes = st.notes || {}; st.mine = st.mine || []; st.min = st.min || 1;
 let spots = [], byId = new Map(), me = null, sel = null, mode = null;
@@ -44,6 +45,7 @@ const colorOf = (s) => css(SUBC[s.sub] || KINDS[s.k].c);
 // ---------- map + layers ----------
 const map = L.map("map", { zoomControl: false, maxZoom: 20, minZoom: 5 }).setView(st.view?.c || [59.276, 18.13], st.view?.z || 14);
 L.control.zoom({ position: "bottomright" }).addTo(map);
+map.attributionControl.addAttribution('Elevation <a href="https://mapterhorn.com/attribution" target="_blank" rel="noopener">© Mapterhorn</a>');
 L.control.scale({ position: "bottomleft", imperial: false }).addTo(map);
 const BASES = {
   streets: { l: "Streets", sw: "linear-gradient(135deg,#f2efe9 40%,#fff 40% 50%,#aad3df 50%)", layer: () => L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 20, maxNativeZoom: 19, attribution: "© OpenStreetMap contributors" }) },
@@ -124,7 +126,7 @@ function toggleFilters(force) {
   $("filters").hidden = !show; if (show) { $("layers").hidden = true; $("bLayers").classList.remove("on"); drawFilters(); }
 }
 const LABELS = { surf: { asphalt: "Asphalt", concrete: "Concrete", "court surface": "Court surface", "paving stones": "Paving stones", paved: "Paved (type unknown)", unknown: "Not mapped" },
-  hillLv: { gentle: "Gentle 2.5–4 %", mellow: "Mellow 4–6 %", solid: "Solid 6–9 %", steep: "Steep 9 %+" }, flatType: { court: "Courts", parking: "Car parks", schoolyard: "Schoolyards" } };
+  hillLv: { gentle: "Gentle 2.5–4 %", mellow: "Mellow 4–6 %", solid: "Solid 6–9 %", steep: "Steep 9–13 %", "very steep": "Very steep 13 %+" }, flatType: { court: "Courts", parking: "Car parks", schoolyard: "Schoolyards" } };
 function drawFilters() {
   const F = st.f, c = {}; for (const s of spots) c[s.k] = (c[s.k] || 0) + 1;
   $("fCats").innerHTML = Object.entries(KINDS).filter(([k]) => c[k] || k === "mine").map(([k, v]) =>
@@ -189,7 +191,7 @@ const G = { n: [], e: [] };
 async function loadRegions() {
   for (const r of REGIONS) {
     try {
-      const d = await (await fetch(`regions/${r}.json?v=2026-11-14f`)).json();
+      const d = await (await fetch(`regions/${r}.json?v=2026-11-14g`)).json();
       addSpots(d.spots);
       for (const q of ["1", "2", "3"]) surfData[q].push(...d.surf[q]);
       const off = G.n.length; G.n.push(...d.graph.n); for (const [a, b, l, q] of d.graph.e) G.e.push([a + off, b + off, l, q]);

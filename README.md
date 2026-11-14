@@ -7,7 +7,7 @@ A web map for finding skate spots: stairs (normal and long, low steps), hills, s
 
 - `web/` – the map (Leaflet). Open via the `skatekartan` entry in `01_Privat/.claude/launch.json` → http://localhost:8472/web/
 - `web/regions/<region>.json` – precomputed spots, hills, routes and route graph per region (`soder`, `vallentuna`).
-- `process.py <region>` – builds a region from `data/<region>/spots.json` + `base.json` (Overpass answers to `q_*.txt`) and elevations from opentopodata.org (EU-DEM 25 m, cached in `elev_cache.json`; the free API allows 1000 calls/day, 100 points per call).
+- `process.py <region>` – builds a region from `data/<region>/spots.json` + `base.json` (Overpass answers to `q_*.txt`) and ground elevation from Mapterhorn terrain tiles (~1.2 m per pixel, `dem.py`, tiles cached in `data/dem_tiles/`, not in git). `--eudem` falls back to the old 25 m EU-DEM via opentopodata.org.
 - Live search (magnifier button) finds spots anywhere via Overpass, but without hills and routes.
 - My spots and notes live in the browser's localStorage; "Copy backup" / "Paste backup" moves them between devices.
 

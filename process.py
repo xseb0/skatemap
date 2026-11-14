@@ -279,6 +279,7 @@ def sample_points(g, step=30):
     pts.append(g[-1]); return pts
 def ek(p): return f"{p[0]:.4f},{p[1]:.4f}"
 cand = paths + roads
+BRIDGE = {el["id"] for el in base if el.get("tags", {}).get("bridge") not in (None, "no") or el.get("tags", {}).get("tunnel") not in (None, "no") or el.get("tags", {}).get("layer", "0") not in ("0",)}
 # join pieces of the same named street/path end to end, so a long hill split into several OSM ways is seen as one
 def chain_named(items):
     groups = collections.defaultdict(list)
@@ -304,71 +305,88 @@ def chain_named(items):
                 base_it = its[0]
                 joined.append(dict(base_it, g=line, id=f"{base_it['id']}j{len(joined)}", joined=True))
     return joined
-hill_extra = chain_named(cand)
+hill_extra = chain_named([c for c in cand if c["id"] not in BRIDGE])
 print("joined named lines:", len(hill_extra))
-need = set()
-for p in cand + hill_extra + unknown_paths:
-    p["sp"] = sample_points(p["g"])
-    for q in p["sp"]:
-        if ek(q) not in elev: need.add(ek(q))
-need = sorted(need)
-print("elevation points to fetch:", len(need), "cached:", len(elev), flush=True)
-if need and "--no-fetch" not in sys.argv:
-    for i in range(0, len(need), 100):
-        chunk = need[i:i + 100]
-        url = "https://api.opentopodata.org/v1/eudem25m?locations=" + "|".join(chunk)
-        for attempt in range(6):
-            try:
-                with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "skatemap-local/1.0"}), timeout=60) as r:
-                    res = json.load(r)
-                for k, rr in zip(chunk, res["results"]): elev[k] = rr["elevation"]
-                break
-            except Exception as e:
-                time.sleep(2 + attempt * 4)
-        time.sleep(1.05)
-        if i % 2000 == 0: json.dump(elev, open(CACHE, "w")); print("  fetched", i + len(chunk), "/", len(need), flush=True)
-    json.dump(elev, open(CACHE, "w"))
-def H(q):
-    h = elev.get(ek(q))
-    if h is not None: return h
-    for dx in (-1, 0, 1):  # nearest cached point within ~11 m (older caches used other sample spots)
-        for dy in (-1, 0, 1):
-            h = elev.get(f"{q[0] + dx * 1e-4:.4f},{q[1] + dy * 1e-4:.4f}")
-            if h is not None: return h
-    return None
+USE_DEM = "--eudem" not in sys.argv  # default: Mapterhorn ~1.2 m terrain tiles; --eudem = old 25 m API data
+if USE_DEM:
+    sys.path.insert(0, HERE); import dem
+    _hm = {}
+    def H(q):
+        k = (round(q[0], 5), round(q[1], 5))
+        if k not in _hm:
+            try: _hm[k] = dem.elevation(*k)
+            except Exception as ex: print("  dem tile failed", k, ex); _hm[k] = None
+        return _hm[k]
+    for p in cand + hill_extra + unknown_paths: p["sp"] = sample_points(p["g"], 10)
+    _tiles = {dem.tile_of(q[0], q[1])[:2] for p in cand + hill_extra + unknown_paths for q in p["sp"]}
+    print("terrain tiles needed:", len(_tiles), "cached:", sum(1 for t in _tiles if os.path.exists(os.path.join(dem.CACHE, f"{dem.Z}_{t[0]}_{t[1]}.png"))), flush=True)
+else:
+    need = set()
+    for p in cand + hill_extra + unknown_paths:
+        p["sp"] = sample_points(p["g"])
+        for q in p["sp"]:
+            if ek(q) not in elev: need.add(ek(q))
+    need = sorted(need)
+    print("elevation points to fetch:", len(need), "cached:", len(elev), flush=True)
+    if need and "--no-fetch" not in sys.argv:
+        for i in range(0, len(need), 100):
+            chunk = need[i:i + 100]
+            url = "https://api.opentopodata.org/v1/eudem25m?locations=" + "|".join(chunk)
+            for attempt in range(6):
+                try:
+                    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "skatemap-local/1.0"}), timeout=60) as r:
+                        res = json.load(r)
+                    for k, rr in zip(chunk, res["results"]): elev[k] = rr["elevation"]
+                    break
+                except Exception as e:
+                    time.sleep(2 + attempt * 4)
+            time.sleep(1.05)
+        json.dump(elev, open(CACHE, "w"))
+    def H(q):
+        h = elev.get(ek(q))
+        if h is not None: return h
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                h = elev.get(f"{q[0] + dx * 1e-4:.4f},{q[1] + dy * 1e-4:.4f}")
+                if h is not None: return h
+        return None
 
 # ---------- hills ----------
 hills = []
 for p in hill_extra + cand + unknown_paths:
+    if p["id"] in BRIDGE: continue
     sp = p["sp"]; hs = [H(q) for q in sp]
     if any(h is None for h in hs) or len(sp) < 5: continue
     sm = [sum(hs[max(0, i - 1):i + 2]) / len(hs[max(0, i - 1):i + 2]) for i in range(len(hs))]
     cum = [0]
     for i in range(len(sp) - 1): cum.append(cum[-1] + dist(sp[i], sp[i + 1]))
+    dn = [0]; up = [0]  # running counts of falling / rising steps, so "how steady is the slope" is O(1)
+    for k in range(len(sm) - 1): dn.append(dn[-1] + (sm[k + 1] < sm[k])); up.append(up[-1] + (sm[k + 1] > sm[k]))
+    MINL = 50 if USE_DEM else 100; MINDH = 3 if USE_DEM else 5; MAXG = 0.18 if USE_DEM else 0.12
     best = None
     for i in range(len(sp)):
         for j in range(i + 4, len(sp)):
             L = cum[j] - cum[i]
-            if L < 100: continue
+            if L < MINL: continue
             if L > 1500: break
             dh = sm[j] - sm[i]; gr = abs(dh) / L
-            same = sum(1 for k in range(i, j) if (sm[k + 1] - sm[k]) * dh > 0) / (j - i)
-            if 0.025 <= gr <= 0.12 and same >= 0.7 and abs(dh) >= 5:
-                sc = L * min(gr, 0.08) * same
+            same = ((dn[j] - dn[i]) if dh < 0 else (up[j] - up[i])) / (j - i)
+            if 0.03 <= gr <= MAXG and same >= 0.7 and abs(dh) >= MINDH:
+                sc = L * min(gr, 0.09) * same
                 if not best or sc > best[0]: best = (sc, i, j, L, dh, gr)
     if not best: continue
     sc, i, j, L, dh, gr = best
     seg = sp[i:j + 1]; prof = sm[i:j + 1]
     if dh > 0: seg = seg[::-1]; prof = prof[::-1]
-    level = "gentle" if gr < 0.04 else "mellow" if gr < 0.06 else ("solid" if gr < 0.09 else "steep")
+    level = "gentle" if gr < 0.04 else "mellow" if gr < 0.06 else "solid" if gr < 0.09 else "steep" if gr < 0.13 else "very steep"
     path_like = p["hw"] in ("cycleway", "footway", "path", "pedestrian", "service", "track")
     hills.append({"id": f"{REGION[:2]}h{p['id']}", "k": "hill", "n": p["name"] or {"cycleway": "Hill on bike path", "footway": "Hill on footpath", "path": "Hill on footpath", "pedestrian": "Hill on footpath", "service": "Hill on quiet road", "track": "Hill on quiet road"}.get(p["hw"], "Hill on street"),
                   "p": [round(seg[0][0], 5), round(seg[0][1], 5)], "g": r5(seg),
-                  "s": 5 if (0.035 <= gr <= 0.075 and L >= 200 and (p["q"] >= 3 or p["surf"] == "asphalt")) else (4 if (0.03 <= gr <= 0.09 and L >= 130) or (gr >= 0.025 and L >= 250 and (p["q"] >= 3 or p["surf"] == "asphalt")) else 3),
+                  "s": 5 if ((0.04 <= gr <= 0.10 and L >= 120) or (gr >= 0.03 and L >= 300)) and (p["q"] >= 3 or p["surf"] == "asphalt") else (4 if (0.035 <= gr <= 0.13 and L >= 70) or (gr >= 0.03 and L >= 200) else 3),
                   "w": f"{L:.0f} m downhill, {abs(dh):.0f} m drop ({gr*100:.1f} %): {level}" + (" on smooth asphalt" if (p["q"] >= 3 or p["surf"] == "asphalt") else "") + {"cycleway": "; bike path, no cars", "service": "; quiet service road", "track": "; quiet paved track", "unclassified": "; minor road, some cars", "residential": "; residential street, watch for cars", "living_street": "; residential street, watch for cars"}.get(p["hw"], ""),
                   "f": {"lv": level, "cf": p["hw"] in ("cycleway", "footway", "path", "pedestrian", "service", "track"), "su": "unknown" if p.get("unk") else surf_cat(p["surf"] or "asphalt")},
                   "i": {"Length": f"{L:.0f} m", "Drop": f"{abs(dh):.0f} m", "Grade": f"{gr*100:.1f} %", "Surface": sv(p["surf"]) if p["surf"] else ("not mapped, check it" if p.get("unk") else "asphalt (assumed)"), "Lit": YN.get(p["lit"], "unknown")},
-                  "osm": f"way/{p['id']}", "sub": level, "prof": [round(x - min(prof), 1) for x in prof]})
+                  "osm": f"way/{p['id']}", "sub": level, "prof": [round(x - min(prof), 1) for x in prof[::max(1, len(prof) // 80)]]})
 hills.sort(key=lambda h: -h["s"]); kept = []
 for h in hills:
     if all(dist(h["p"], k["p"]) > 60 for k in kept): kept.append(h)
