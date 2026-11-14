@@ -8,11 +8,12 @@
 <title>Skate Map</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=18">
 </head>
 <body>
 <div id="map"></div>
 
+<aside class="side">
 <div class="top">
   <div class="searchbox">
     <span class="logo">Skate<span>map</span></span>
@@ -21,7 +22,14 @@
   </div>
   <div class="results" id="results" hidden></div>
   <div class="chips" id="chips"></div>
+  <div class="ctx" id="ctx" hidden></div>
 </div>
+<div class="sheet collapsed" id="sheet">
+  <button class="bar" id="sheetBar" aria-expanded="false"><span class="grab"></span><strong id="sheetTitle">Spots nearby</strong><span class="sub" id="sheetSub"></span>
+    <svg viewBox="0 0 24 24" width="20" height="20" style="stroke:currentColor;fill:none;stroke-width:2"><path d="M6 15l6-6 6 6"/></svg></button>
+  <div class="list" id="list"></div>
+</div>
+</aside>
 
 <div class="fab">
   <button class="iconbtn" id="bLayers" aria-label="Map layers" title="Map layers"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
@@ -38,23 +46,43 @@
   <input type="range" id="satOp" min="0.1" max="1" step="0.05" value="0.6" aria-label="Satellite overlay opacity">
   <div class="row"><label><input type="checkbox" id="surfOn"> Surface quality on paths</label></div>
   <div class="legend"><span><b style="background:var(--q3)"></b>smooth</span><span><b style="background:var(--q2)"></b>okay</span><span><b style="background:var(--q1)"></b>rough</span></div>
-  <h3>Rating</h3>
-  <div class="seg" id="minRate"><button data-v="1">All</button><button data-v="3">3+</button><button data-v="4">4+</button><button data-v="5">5</button></div>
   <h3>My spots and notes</h3>
   <div class="row" style="justify-content:flex-start"><button class="btn" id="bExport">Copy backup</button><button class="btn" id="bImport">Paste backup</button></div>
   <p class="small" id="ioMsg" style="margin:0">Saved in this browser. Copy a backup to move them to another device.</p>
 </div>
 
-<div class="sheet collapsed" id="sheet">
-  <button class="bar" id="sheetBar" aria-expanded="false"><span class="grab"></span><strong id="sheetTitle">Spots nearby</strong><span class="sub" id="sheetSub"></span>
-    <svg viewBox="0 0 24 24" width="20" height="20" style="stroke:currentColor;fill:none;stroke-width:2"><path d="M6 15l6-6 6 6"/></svg></button>
-  <div class="list" id="list"></div>
+<div class="pop filters" id="filters" hidden>
+  <div class="row"><h3>Filters</h3><button class="btn" id="fReset">Reset</button></div>
+  <div id="fCats" class="fcats"></div>
+  <h3>Rating</h3>
+  <div class="seg" id="minRate"><button data-v="1">All</button><button data-v="3">3+</button><button data-v="4">4+</button><button data-v="5">5</button></div>
+  <h3>Stairs</h3>
+  <div class="row"><label for="nMin">Steps from</label><input type="number" id="nMin" min="0" max="99" inputmode="numeric"><label for="nMax">to</label><input type="number" id="nMax" min="0" max="99" inputmode="numeric"></div>
+  <div class="tgs" id="nPreset"><button data-r="1,4">1–4</button><button data-r="5,10">5–10</button><button data-r="11,20">11–20</button><button data-r="21,99">21+</button><button data-r="0,99">Any</button></div>
+  <div class="seg" id="stepType"><button data-v="any">Any</button><button data-v="short">Short sets</button><button data-v="stairs">Normal</button></div>
+  <label class="ck"><input type="checkbox" id="hasCount"> Only stairs with a known step count</label>
+  <label class="ck"><input type="checkbox" id="rail"> Has a handrail</label>
+  <label class="ck"><input type="checkbox" id="pavedEnds"> Paved at both ends (checked in map data)</label>
+  <h3>Surface</h3>
+  <p class="small" style="margin:-4px 0 0">Applies to stairs, flat ground, plazas and rinks. Gravel, dirt, cobbles and rough asphalt are always left out.</p>
+  <div class="tgs" id="surf"></div>
+  <h3>Hills</h3>
+  <div class="tgs" id="hillLv"></div>
+  <label class="ck"><input type="checkbox" id="carFree"> No car traffic (paths and quiet roads)</label>
+  <h3>Flat ground and plazas</h3>
+  <div class="tgs" id="flatType"></div>
+  <label class="ck"><input type="checkbox" id="bigPlaza"> Only big smooth plazas</label>
+  <h3>Pump &amp; BMX</h3>
+  <label class="ck"><input type="checkbox" id="noDirt"> Hide dirt BMX tracks</label>
+  <h3>Suggested routes</h3>
+  <div class="seg" id="hub"><button data-v="any">All</button><button data-v="Bagarmossen">Loops from Bagis</button><button data-v="Kärrtorp">Loops from Kärrtorp</button></div>
 </div>
+
 
 <div class="card" id="card" hidden></div>
 <div class="hint" id="hint" hidden><span id="hintText"></span><button id="hintX">Cancel</button></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js?v=14"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>

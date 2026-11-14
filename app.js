@@ -3,8 +3,10 @@
 const REGIONS = ["soder", "vallentuna"];
 const KINDS = {
   park:  { l: "Skateparks", one: "Skatepark", c: "--c-park" },
-  pump:  { l: "Pump tracks", one: "Pump track / bike park", c: "--c-pump" },
+  pump:  { l: "Pump & BMX", one: "Pump track / BMX track", c: "--c-pump" },
+  rink:  { l: "Ice rinks", one: "Outdoor ice rink (winter)", c: "--c-rink" },
   steps: { l: "Stairs", one: "Stairs", c: "--c-steps" },
+  longsteps: { l: "Long-tread stairs", one: "Stairs with long, low steps", c: "--c-long" },
   hill:  { l: "Hills", one: "Hill", c: "--c-hill" },
   ledge: { l: "Ledges & curbs", one: "Ledge / curb", c: "--c-ledge" },
   rail:  { l: "Rails", one: "Rail", c: "--c-rail" },
@@ -14,7 +16,7 @@ const KINDS = {
   mine:  { l: "My spots", one: "My spot", c: "--c-mine" },
 };
 const SUBC = { long: "--c-long", short: "--c-short" };
-const SUBL = { long: "Stairs with long, low steps", short: "Short stairs: jump practice", stairs: "Stairs", parking: "Large car park", court: "Court",
+const SUBL = { smoothplaza: "Big smooth plaza", long: "Stairs with long, low steps", short: "Short stairs: jump practice", stairs: "Stairs", parking: "Large car park", court: "Court",
   schoolyard: "Schoolyard", plan: "Planned route", mellow: "Mellow hill", solid: "Solid hill", steep: "Steep hill", bench: "Bench", curb: "Curb" };
 const NOTE = { good: "Good spot", ok: "It's okay", meh: "Not for me" };
 
@@ -29,7 +31,12 @@ const bearing = (a, b) => { const r = Math.PI / 180; return ((Math.atan2((b[1] -
 // ---------- state ----------
 let st = {}; try { st = JSON.parse(localStorage.getItem("skatemap") || "{}"); } catch (e) {}
 const save = () => { try { localStorage.setItem("skatemap", JSON.stringify(st)); } catch (e) {} };
-st.on = Object.assign({ park: 1, pump: 1, steps: 1, hill: 1, ledge: 1, rail: 1, plaza: 1, flat: 0, route: 0, mine: 1 }, st.on || {});
+st.on = Object.assign({ park: 1, pump: 1, rink: 1, steps: 1, longsteps: 1, hill: 1, ledge: 1, rail: 1, plaza: 1, flat: 0, route: 0, mine: 1 }, st.on || {});
+const FDEF = { nMin: 0, nMax: 99, stepType: "any", rail: false, pavedEnds: false, hasCount: false,
+  flatType: { court: true, parking: true, schoolyard: true }, surf: { asphalt: true, concrete: true, "court surface": true, "paving stones": true, paved: true, unknown: true },
+  hillLv: { gentle: true, mellow: true, solid: true, steep: true }, carFree: false, bigPlaza: false, noDirt: false, hub: "any" };
+st.f = Object.assign(JSON.parse(JSON.stringify(FDEF)), st.f || {});
+if (st.f.stepType === "long") st.f.stepType = "any";
 st.notes = st.notes || {}; st.mine = st.mine || []; st.min = st.min || 1;
 let spots = [], byId = new Map(), me = null, sel = null, mode = null;
 const colorOf = (s) => css(SUBC[s.sub] || KINDS[s.k].c);
@@ -65,10 +72,16 @@ $("satOn").onchange = (e) => setSat(e.target.checked);
 $("satOp").value = st.satOp || 0.6;
 $("satOp").oninput = (e) => { st.satOp = +e.target.value; sat.setOpacity(st.satOp); if (!st.sat) setSat(true); save(); };
 setBase(st.base || "streets"); setSat(!!st.sat);
-$("bLayers").onclick = () => { $("layers").hidden = !$("layers").hidden; $("bLayers").classList.toggle("on", !$("layers").hidden); };
-map.on("click", () => { if (!$("layers").hidden) { $("layers").hidden = true; $("bLayers").classList.remove("on"); } });
+$("bLayers").onclick = () => { $("layers").hidden = !$("layers").hidden; $("bLayers").classList.toggle("on", !$("layers").hidden); if (!$("layers").hidden) $("filters").hidden = true; };
+map.on("click", () => { if (!$("layers").hidden) { $("layers").hidden = true; $("bLayers").classList.remove("on"); } if (!$("filters").hidden) $("filters").hidden = true; });
 
 const R = L.canvas({ padding: 0.3, tolerance: 8 });
+map.createPane("hi"); map.getPane("hi").style.zIndex = 450;
+const RH = L.canvas({ padding: 0.3, pane: "hi" });  // selected spot/route is drawn on its own layer above everything
+function darken(c, f = 0.62) {
+  const m = c.match(/^#([0-9a-f]{6})$/i); if (!m) return c;
+  const n = parseInt(m[1], 16); return `rgb(${Math.round((n >> 16) * f)},${Math.round(((n >> 8) & 255) * f)},${Math.round((n & 255) * f)})`;
+}
 const surfLayer = L.layerGroup(), spotLayer = L.layerGroup().addTo(map), lineLayer = L.layerGroup().addTo(map), hiLayer = L.layerGroup().addTo(map), routeLayer = L.layerGroup().addTo(map);
 let surfData = { "1": [], "2": [], "3": [] };
 function drawSurf() { surfLayer.clearLayers(); for (const q of ["1", "2", "3"]) if (surfData[q].length) L.polyline(surfData[q], { renderer: R, color: css("--q" + q), weight: q === "3" ? 3.5 : 3, opacity: .9, interactive: false }).addTo(surfLayer); }
@@ -77,34 +90,106 @@ $("surfOn").onchange = (e) => setSurf(e.target.checked);
 
 // rating filter
 function drawRate() { $("minRate").querySelectorAll("button").forEach((b) => b.classList.toggle("on", +b.dataset.v === st.min)); }
-$("minRate").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; st.min = +b.dataset.v; save(); drawRate(); render(); };
+$("minRate").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; e.stopPropagation(); st.min = +b.dataset.v; save(); drawRate(); drawChips(); render(); };
 drawRate();
 
 // ---------- chips ----------
 function drawChips() {
   const c = {}; for (const s of spots) c[s.k] = (c[s.k] || 0) + 1;
   const allOn = Object.keys(KINDS).every((k) => st.on[k] || !c[k]);
-  $("chips").innerHTML = `<span class="chip all ${allOn ? "" : "off"}"><button data-all>All</button></span>` +
+  const nf = activeFilters();
+  $("chips").innerHTML = `<span class="chip filt ${nf ? "act" : ""}"><button data-filters><svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2.2"><path d="M3 5h18M6 12h12M10 19h4"/></svg>Filters${nf ? ` <span class="n">${nf}</span>` : ""}</button></span><span class="chip all ${allOn ? "" : "off"}"><button data-all>All</button></span>` +
     Object.entries(KINDS).filter(([k]) => c[k] || k === "mine").map(([k, v]) =>
       `<span class="chip ${st.on[k] ? "" : "off"}" style="--c:var(${v.c})"><button class="tog" data-k="${k}" aria-pressed="${!!st.on[k]}" title="Show or hide ${v.l.toLowerCase()}"><span class="dot"></span>${v.l}<span class="n">${c[k] || 0}</span></button><button class="only" data-only="${k}" title="Show only ${v.l.toLowerCase()}">only</button></span>`).join("");
 }
 $("chips").onclick = (e) => {
   const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.filters !== undefined) { toggleFilters(); return; }
   if (b.dataset.all !== undefined) { for (const k in KINDS) st.on[k] = 1; }
   else if (b.dataset.only) { for (const k in KINDS) st.on[k] = k === b.dataset.only ? 1 : 0; }
   else { const k = b.dataset.k; st.on[k] = st.on[k] ? 0 : 1; }
-  save(); drawChips(); render();
+  save(); drawChips(); drawCtx(); render();
 };
 
+// ---------- filter panel ----------
+function activeFilters() {
+  let n = 0; const F = st.f;
+  for (const k of ["nMin", "nMax", "stepType", "rail", "pavedEnds", "hasCount", "carFree", "bigPlaza", "noDirt", "hub"]) if (JSON.stringify(F[k]) !== JSON.stringify(FDEF[k])) n++;
+  for (const g of ["flatType", "surf", "hillLv"]) if (Object.values(F[g]).some((v) => !v)) n++;
+  if (st.min > 1) n++;
+  return n;
+}
+function toggleFilters(force) {
+  const show = force ?? $("filters").hidden;
+  $("filters").hidden = !show; if (show) { $("layers").hidden = true; $("bLayers").classList.remove("on"); drawFilters(); }
+}
+const LABELS = { surf: { asphalt: "Asphalt", concrete: "Concrete", "court surface": "Court surface", "paving stones": "Paving stones", paved: "Paved (type unknown)", unknown: "Not mapped" },
+  hillLv: { gentle: "Gentle 2.5–4 %", mellow: "Mellow 4–6 %", solid: "Solid 6–9 %", steep: "Steep 9 %+" }, flatType: { court: "Courts", parking: "Car parks", schoolyard: "Schoolyards" } };
+function drawFilters() {
+  const F = st.f, c = {}; for (const s of spots) c[s.k] = (c[s.k] || 0) + 1;
+  $("fCats").innerHTML = Object.entries(KINDS).filter(([k]) => c[k] || k === "mine").map(([k, v]) =>
+    `<div class="fcat" style="--c:var(${v.c})"><label><input type="checkbox" data-cat="${k}" ${st.on[k] ? "checked" : ""}><span class="dot"></span>${v.l}<span class="n">${c[k] || 0}</span></label><button class="only" data-only="${k}">only</button></div>`).join("");
+  $("nMin").value = F.nMin; $("nMax").value = F.nMax;
+  for (const id of ["hasCount", "rail", "pavedEnds", "carFree", "bigPlaza", "noDirt"]) $(id).checked = !!F[id];
+  for (const g of ["surf", "hillLv", "flatType"]) $(g).innerHTML = Object.entries(LABELS[g]).map(([k, l]) => `<button data-g="${g}" data-k="${k}" class="${F[g][k] ? "on" : ""}">${l}</button>`).join("");
+  $("stepType").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === F.stepType));
+  $("hub").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === F.hub));
+  $("nPreset").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.r === `${F.nMin},${F.nMax}`));
+  drawRate();
+}
+function applyF() { save(); drawFilters(); drawChips(); drawCtx(); render(); }
+function fClick(e) {
+  const b = e.target.closest("button"); if (!b) return; const F = st.f;
+  if (b.id === "fReset") { st.f = JSON.parse(JSON.stringify(FDEF)); st.min = 1; for (const k in KINDS) st.on[k] = 1; st.on.flat = 0; st.on.route = 0; }
+  else if (b.dataset.only) { for (const k in KINDS) st.on[k] = k === b.dataset.only ? 1 : 0; }
+  else if (b.dataset.g) F[b.dataset.g][b.dataset.k] = !F[b.dataset.g][b.dataset.k];
+  else if (b.dataset.r) { const [a, z] = b.dataset.r.split(",").map(Number); F.nMin = a; F.nMax = z; }
+  else if ((b.parentElement.dataset.seg || b.parentElement.id) === "stepType") { F.stepType = b.dataset.v; }
+  else if ((b.parentElement.dataset.seg || b.parentElement.id) === "hub") { F.hub = b.dataset.v; if (F.hub !== "any") st.on.route = 1; }
+  else if (b.dataset.openfilters !== undefined) { toggleFilters(true); return; }
+  else return;
+  applyF();
+}
+function fChange(e) {
+  const t = e.target, F = st.f, key = t.dataset.fid || t.id;
+  if (t.dataset.cat) st.on[t.dataset.cat] = t.checked ? 1 : 0;
+  else if (key === "nMin" || key === "nMax") { F[key] = Math.max(0, Math.min(99, parseInt(t.value) || (key === "nMin" ? 0 : 99))); }
+  else if (t.type === "checkbox") F[key] = t.checked;
+  applyF();
+}
+$("filters").addEventListener("click", fClick); $("filters").addEventListener("change", fChange);
+$("ctx").addEventListener("click", fClick); $("ctx").addEventListener("change", fChange);
+// quick filters for the category you are looking at (shown when only one category is on)
+function drawCtx() {
+  const on = Object.keys(KINDS).filter((k) => st.on[k]);
+  const k = on.length === 1 ? on[0] : null, F = st.f;
+  const tg = (g) => Object.entries(LABELS[g]).map(([kk, l]) => `<button data-g="${g}" data-k="${kk}" class="${F[g][kk] ? "on" : ""}">${l}</button>`).join("");
+  const ck = (id, l) => `<label class="ck"><input type="checkbox" data-fid="${id}" ${F[id] ? "checked" : ""}> ${l}</label>`;
+  const seg = (id, opts) => `<div class="seg" data-seg="${id}">${opts.map(([v, l]) => `<button data-v="${v}" class="${F[id] === v ? "on" : ""}">${l}</button>`).join("")}</div>`;
+  const rng = `<div class="tgs">${[["1,4", "1–4 steps"], ["5,10", "5–10"], ["11,20", "11–20"], ["21,99", "21+"], ["0,99", "Any"]].map(([r, l]) => `<button data-r="${r}" class="${`${F.nMin},${F.nMax}` === r ? "on" : ""}">${l}</button>`).join("")}</div>`;
+  const body = {
+    steps: rng + seg("stepType", [["any", "Any"], ["short", "Short sets"], ["stairs", "Normal"]]) + ck("rail", "Has a handrail") + ck("pavedEnds", "Paved at both ends"),
+    longsteps: rng + ck("rail", "Has a handrail") + ck("pavedEnds", "Paved at both ends"),
+    hill: `<div class="tgs">${tg("hillLv")}</div>` + ck("carFree", "No car traffic"),
+    flat: `<div class="tgs">${tg("flatType")}</div><div class="tgs">${tg("surf")}</div>`,
+    plaza: ck("bigPlaza", "Only big smooth plazas") + `<div class="tgs">${tg("surf")}</div>`,
+    route: seg("hub", [["any", "All"], ["Bagarmossen", "Loops from Bagis"], ["Kärrtorp", "Loops from Kärrtorp"]]),
+    pump: ck("noDirt", "Hide dirt BMX tracks"),
+  }[k];
+  if (!k || !body) { $("ctx").hidden = true; return; }
+  $("ctx").innerHTML = `<div class="ctxh"><span>${KINDS[k].l}</span><button data-openfilters>All filters</button></div>${body}`;
+  $("ctx").hidden = false;
+}
+
 // ---------- data ----------
-function addSpots(arr) { for (const s of arr) { if (byId.has(s.id) || (s.osm && byId.has("osm:" + s.osm + s.k))) continue; byId.set(s.id, s); if (s.osm) byId.set("osm:" + s.osm + s.k, s); spots.push(s); } }
+function addSpots(arr) { for (const s of arr) { if (s.k === "steps" && s.sub === "long") s.k = "longsteps"; if (byId.has(s.id) || (s.osm && byId.has("osm:" + s.osm + s.k))) continue; byId.set(s.id, s); if (s.osm) byId.set("osm:" + s.osm + s.k, s); spots.push(s); } }
 function mineSpots() { return st.mine.map((m) => Object.assign({ k: "mine", s: 5 }, m)); }
 function refreshMine() { spots = spots.filter((s) => s.k !== "mine"); for (const [k, v] of byId) if (v.k === "mine") byId.delete(k); addSpots(mineSpots()); }
 const G = { n: [], e: [] };
 async function loadRegions() {
   for (const r of REGIONS) {
     try {
-      const d = await (await fetch(`regions/${r}.json?v=2026-11-14`)).json();
+      const d = await (await fetch(`regions/${r}.json?v=2026-11-14d`)).json();
       addSpots(d.spots);
       for (const q of ["1", "2", "3"]) surfData[q].push(...d.surf[q]);
       const off = G.n.length; G.n.push(...d.graph.n); for (const [a, b, l, q] of d.graph.e) G.e.push([a + off, b + off, l, q]);
@@ -116,7 +201,26 @@ async function loadRegions() {
 
 // ---------- render markers + list ----------
 const zoomMin = () => (map.getZoom() <= 12 ? 5 : map.getZoom() <= 14 ? 4 : 1);
-function visible() { const m = Math.max(st.min, zoomMin()); return spots.filter((s) => st.on[s.k] && (s.s >= m || s.k === "mine" || s.k === "park" || s.k === "pump")); }
+function passes(s) {
+  const F = st.f, f = s.f || {};
+  if (s.k === "steps" || s.k === "longsteps") {
+    if (F.hasCount && f.n == null) return false;
+    if (f.n != null && (f.n < F.nMin || f.n > F.nMax)) return false;
+    if (s.k === "steps" && F.stepType !== "any" && F.stepType !== "long" && (s.sub || "stairs") !== F.stepType) return false;
+    if (F.rail && !f.rail) return false;
+    if (F.pavedEnds && !f.ends) return false;
+    if (f.su && !F.surf[f.su]) return false;
+  }
+  if (s.k === "flat") { if (!F.flatType[s.sub]) return false; if (f.su && !F.surf[f.su]) return false; }
+  if (s.k === "plaza") { if (F.bigPlaza && s.sub !== "smoothplaza") return false; if (f.su && !F.surf[f.su]) return false; }
+  if (s.k === "rink" && f.su && !F.surf[f.su]) return false;
+  if (s.k === "hill") { if (f.lv && !F.hillLv[f.lv]) return false; if (F.carFree && !f.cf) return false; }
+  if (s.k === "pump" && F.noDirt && f.dirt) return false;
+  if (s.k === "route" && F.hub !== "any" && f.hub !== F.hub) return false;
+  return true;
+}
+const THIN = new Set(["steps", "hill", "flat", "plaza"]);  // only the big categories are thinned out when zoomed out
+function visible() { const zm = zoomMin(); return spots.filter((s) => st.on[s.k] && passes(s) && (s.k === "mine" || (s.s >= st.min && (!THIN.has(s.k) || s.s >= zm)))); }
 function render() {
   spotLayer.clearLayers(); lineLayer.clearLayers();
   const vs = visible(), z = map.getZoom();
@@ -124,11 +228,30 @@ function render() {
   const ink = css("--panel");
   for (const s of vs) {
     const col = colorOf(s);
-    if ((s.k === "route" || s.k === "hill") && s.g && z >= 13) L.polyline(s.g, { renderer: R, color: col, weight: s.k === "route" ? 4 : 5, opacity: s.k === "route" ? .55 : .8 }).on("click", (e) => pick(s, e)).addTo(lineLayer);
+    const focus = sel && (sel.k === "route" || sel.k === "hill") && sel.id !== s.id;
+    if ((s.k === "route" || s.k === "hill") && s.g && z >= 13) L.polyline(s.g, { renderer: R, color: col, weight: s.k === "route" ? 4 : 5, opacity: focus ? 0.12 : s.k === "route" ? .55 : .8 }).on("click", (e) => pick(s, e)).addTo(lineLayer);
+    if (s.k === "hill" && s.g && z >= 15 && !focus) arrows(s.g, col, z, lineLayer, R);
     if (s.k === "mine") L.marker(s.p, { icon: L.divIcon({ className: "", html: `<div class="mine-pin"></div>`, iconSize: [16, 16] }), title: s.n }).on("click", (e) => pick(s, e)).addTo(spotLayer);
     else L.circleMarker(s.p, { renderer: R, radius: s.s >= 5 ? rad + 1.5 : rad, color: ink, weight: 2, fillColor: col, fillOpacity: 1 }).on("click", (e) => pick(s, e)).addTo(spotLayer);
   }
   drawList(vs);
+}
+// downhill chevrons along a hill (its geometry starts at the top)
+function arrows(g, col, z, layer, rend, every0) {
+  const pts = g.map((p) => map.latLngToLayerPoint(p)), every = every0 || (z >= 17 ? 55 : 70), size = z >= 17 ? 3.5 : 3;
+  const dk = darken(col);
+  let acc = every / 2;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1], d = a.distanceTo(b); if (!d) continue;
+    const ux = (b.x - a.x) / d, uy = (b.y - a.y) / d;
+    while (acc <= d) {
+      const c = L.point(a.x + ux * acc, a.y + uy * acc), tip = L.point(c.x + ux * size, c.y + uy * size);
+      const l1 = L.point(c.x - ux * size - uy * size, c.y - uy * size + ux * size), l2 = L.point(c.x - ux * size + uy * size, c.y - uy * size - ux * size);
+      L.polyline([map.layerPointToLatLng(l1), map.layerPointToLatLng(tip), map.layerPointToLatLng(l2)], { renderer: rend, color: dk, weight: 1.5, opacity: .9, interactive: false, lineCap: "round", lineJoin: "round" }).addTo(layer);
+      acc += every;
+    }
+    acc -= d;
+  }
 }
 function drawList(vs) {
   vs = vs || visible();
@@ -168,12 +291,16 @@ function open(s, fly) {
   if (!s) return;
   sel = s; hiLayer.clearLayers(); $("layers").hidden = true; $("bLayers").classList.remove("on");
   const col = colorOf(s);
-  if (s.g) L.polyline(s.g, { renderer: R, color: col, weight: 9, opacity: .9 }).addTo(hiLayer);
-  L.circleMarker(s.p, { renderer: R, radius: 13, color: col, weight: 3, fill: false }).addTo(hiLayer);
+  if (s.g) {
+    L.polyline(s.g, { renderer: RH, color: css("--panel"), weight: 11, opacity: .95, interactive: false }).addTo(hiLayer);
+    L.polyline(s.g, { renderer: RH, color: col, weight: 6, opacity: 1, interactive: false }).addTo(hiLayer);
+    if (s.k === "route" || s.k === "hill") arrows(s.g, col, Math.max(map.getZoom(), 15), hiLayer, RH, s.k === "route" ? 90 : 50);
+  }
+  L.circleMarker(s.p, { renderer: RH, radius: 13, color: col, weight: 3, fill: false, interactive: false }).addTo(hiLayer);
   const narrow = innerWidth <= 760;
   if (fly || narrow) {
-    if (s.g && s.g.length > 2 && s.k !== "steps") map.fitBounds(L.latLngBounds(s.g), { paddingTopLeft: narrow ? [20, 20] : [400, 40], paddingBottomRight: narrow ? [20, innerHeight * 0.6] : [420, 40], maxZoom: 18 });
-    else { const z = Math.max(map.getZoom(), 17); const pt = map.project(s.p, z); map.setView(map.unproject(narrow ? pt.add([0, innerHeight * 0.28]) : pt.add([200, 0]), z), z); }
+    if (s.g && s.g.length > 2 && s.k !== "steps") map.fitBounds(L.latLngBounds(s.g), { paddingTopLeft: narrow ? [20, 20] : [430, 40], paddingBottomRight: narrow ? [20, innerHeight * 0.6] : [490, 40], maxZoom: 18 });
+    else { const z = Math.max(map.getZoom(), 17); const pt = map.project(s.p, z); map.setView(map.unproject(narrow ? pt.add([0, innerHeight * 0.28]) : pt.add([30, 0]), z), z); }
   }
   const n = st.notes[s.id] || {};
   const [la, lo] = s.p;
@@ -189,6 +316,7 @@ function open(s, fly) {
         <a href="${svUrl(s)}" target="_blank" rel="noopener">Open Street View</a>
         <a href="https://www.google.com/maps/dir/?api=1&destination=${la},${lo}&travelmode=walking" target="_blank" rel="noopener">Directions</a>
         <a href="https://www.google.com/maps/search/?api=1&query=${la},${lo}" target="_blank" rel="noopener">Google Maps</a>
+        ${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">City page</a>` : ""}
         ${s.osm ? `<a href="https://www.openstreetmap.org/${s.osm}" target="_blank" rel="noopener">OpenStreetMap</a>` : ""}
       </div>
       ${s.id === "plan" ? "" : `<div class="notes">
@@ -199,6 +327,7 @@ function open(s, fly) {
       </div>`}
     </div>`;
   $("card").hidden = false; $("card").scrollTop = 0; document.body.classList.add("card-open");
+  if (s.k === "route" || s.k === "hill") render();
   $("card").querySelector(".x").onclick = closeCard;
   $("card").querySelectorAll("[data-st]").forEach((b) => (b.onclick = () => { const v = b.dataset.st; setNote(s, { status: n.status === v ? null : v }); }));
   const ns = $("nSave"); if (ns) ns.onclick = () => { setNote(s, { text: $("nText").value.trim() }); $("nMsg").textContent = "Saved"; };
@@ -211,7 +340,7 @@ function setNote(s, patch) {
   const keepText = $("nText") ? $("nText").value : null;
   open(s); if (keepText !== null && $("nText")) $("nText").value = keepText; drawList();
 }
-function closeCard() { document.body.classList.remove("card-open"); $("card").hidden = true; $("card").innerHTML = ""; hiLayer.clearLayers(); sel = null; drawList(); }
+function closeCard() { const was = sel; document.body.classList.remove("card-open"); $("card").hidden = true; $("card").innerHTML = ""; hiLayer.clearLayers(); sel = null; if (was && (was.k === "route" || was.k === "hill")) render(); else drawList(); }
 
 // ---------- my location ----------
 let watchId = null, meDot = null, meAcc = null, follow = false;
@@ -259,7 +388,7 @@ function addForm(p) {
     <h2>New spot</h2>
     <label class="small" for="eName">Name</label><input type="text" id="eName" placeholder="E.g. Low stairs by the library">
     <label class="small" for="eType">What is here?</label>
-    <select id="eType">${["Stairs", "Stairs with long, low steps", "Low rail", "Grindable curb", "Ledge / bench", "Hill", "Powerslide spot", "Jump / drop", "Bank / transition", "Manual pad", "Other"].map((x) => `<option>${x}</option>`).join("")}</select>
+    <select id="eType">${["Stairs", "Stairs with long, low steps", "Ice rink in winter", "Smooth plaza", "Low rail", "Grindable curb", "Ledge / bench", "Hill", "Powerslide spot", "Jump / drop", "Bank / transition", "Manual pad", "Other"].map((x) => `<option>${x}</option>`).join("")}</select>
     <label class="small" for="eText">Notes</label><textarea id="eText" placeholder="Height, number of steps, surface, when it's empty"></textarea>
     <div class="row" style="justify-content:flex-start"><button class="btn primary" id="eSave">Save spot</button></div></div>`;
   $("card").hidden = false; document.body.classList.add("card-open"); $("card").querySelector(".x").onclick = closeCard; $("eName").focus();
@@ -382,9 +511,12 @@ function liveSpots(els) {
   const area = (a) => { if (a.length < 3) return 0; const k = Math.cos(a[0][0] * Math.PI / 180); let s = 0; for (let i = 0; i < a.length; i++) { const [y1, x1] = a[i], [y2, x2] = a[(i + 1) % a.length]; s += x1 * k * 111320 * y2 * 110574 - x2 * k * 111320 * y1 * 110574; } return Math.abs(s) / 2; };
   const cen = (a) => [a.reduce((s, p) => s + p[0], 0) / a.length, a.reduce((s, p) => s + p[1], 0) / a.length];
   const add = (el, k, n, s, w, i, gg, extra) => out.push(Object.assign({ id: `live-${el.type[0]}${el.id}-${k}`, k, n, p: cen(gg).map((x) => +x.toFixed(6)), s: Math.max(1, Math.min(5, Math.round(s))), w, i, osm: `${el.type}/${el.id}`, g: gg.length > 1 ? gg : undefined }, extra || {}));
+  const BAD = /^(gravel|fine_gravel|compacted|dirt|ground|earth|grass|sand|unpaved|mud|pebblestone|woodchips|wood|sett|cobblestone|unhewn_cobblestone|grass_paver|rock)$/;
+  const scat = (s) => s === "asphalt" ? "asphalt" : /^concrete/.test(s || "") ? "concrete" : /acrylic|tartan|rubber/.test(s || "") ? "court surface" : /paving_stones|stone|granite/.test(s || "") ? "paving stones" : s === "paved" ? "paved" : "unknown";
   for (const el of els) {
     const t = el.tags || {}, gg = g(el); if (!gg.length) continue;
     const nm = t.name || "", sport = t.sport || "", surf = t.surface;
+    if (BAD.test(surf || "") && !/bmx/i.test(sport + nm) || /bad|horrible|impassable/.test(t.smoothness || "")) continue;
     const spOk = /skateboard|bmx|pump|roller_skating|^roller$/.test(sport) && !/roller_ski/.test(sport);
     const nmOk = /pump ?track|pumpbana|skate ?park|skateboard|skatepool|kickbike/i.test(nm) && !t.highway && !/compressed_air|bicycle_repair_station|fuel/.test(t.amenity || "");
     if (spOk || nmOk) {
@@ -399,11 +531,11 @@ function liveSpots(els) {
       if (n && n <= 4) { sub = "short"; s = 4; why.push(`${n} steps: good for learning to drop`); } else if (n && n <= 10) { s = 4; why.push(`${n} steps: nice size for stair bashing`); } else if (n) why.push(`${n} steps: long set`); else why.push("step count not mapped");
       if (tread && tread >= .6 && tread <= 2.2 && n <= 12) { sub = "long"; s = 5; why.unshift(`long treads (~${Math.round(tread * 100)} cm per step): likely low, deep steps`); }
       if (/yes|both|left|right/.test(t.handrail || "")) why.push("has a handrail (usually too high to grind, check)");
-      add(el, "steps", nm || { short: "Short stairs", long: "Long-tread stairs", stairs: "Stairs" }[sub], s, why.join("; "), Object.assign({ Length: `${Math.round(L)} m`, Handrail: t.handrail || "unknown", Surface: surf || "unknown" }, n ? { Steps: String(n) } : {}), gg, { sub }); continue;
+      add(el, "steps", nm || { short: "Short stairs", long: "Long-tread stairs", stairs: "Stairs" }[sub], s, why.join("; "), Object.assign({ Length: `${Math.round(L)} m`, Handrail: t.handrail || "unknown", Surface: surf || "unknown" }, n ? { Steps: String(n) } : {}), gg, { sub, f: { n, tr: tread ? Math.round(tread * 100) : null, rail: /yes|both|left|right/.test(t.handrail || ""), su: scat(surf), ends: false } }); continue;
     }
-    if (t.leisure === "pitch") { if (surf && !PAVED.has(surf) && surf !== "acrylic") continue; add(el, "flat", nm || "Court", surf ? 4 : 3, "Smooth, flat and open: good for powerslides, manuals and flatground", { Sport: sport, Surface: surf || "unknown" }, gg, { sub: "court" }); continue; }
-    if (t.amenity === "parking") { const A = area(gg); if (A < 1800 || (surf && !PAVED.has(surf)) || /underground|multi-storey|rooftop/.test(t.parking || "")) continue; add(el, "flat", nm || "Large car park", 3 + (A > 5000 ? 1 : 0), `Big open lot (${Math.round(A)} m²) for powerslides when it is empty`, { Area: `${Math.round(A)} m²`, Surface: surf || "unknown" }, gg, { sub: "parking" }); continue; }
-    if (t.place === "square" || t.highway === "pedestrian") { if (surf && !PAVED.has(surf)) continue; add(el, "plaza", nm || "Square", 3, "Square or pedestrian street: often ledges, benches and low walls", { Surface: surf || "unknown" }, gg); continue; }
+    if (t.leisure === "pitch") { if (surf && !PAVED.has(surf) && surf !== "acrylic") continue; add(el, "flat", nm || "Court", surf ? 4 : 3, "Smooth, flat and open: good for powerslides, manuals and flatground", { Sport: sport, Surface: surf || "unknown" }, gg, { sub: "court", f: { su: scat(surf) } }); continue; }
+    if (t.amenity === "parking") { const A = area(gg); if (A < 1800 || (surf && !PAVED.has(surf)) || /underground|multi-storey|rooftop/.test(t.parking || "")) continue; add(el, "flat", nm || "Large car park", 3 + (A > 5000 ? 1 : 0), `Big open lot (${Math.round(A)} m²) for powerslides when it is empty`, { Area: `${Math.round(A)} m²`, Surface: surf || "unknown" }, gg, { sub: "parking", f: { su: scat(surf) } }); continue; }
+    if (t.place === "square" || t.highway === "pedestrian") { if (surf && !PAVED.has(surf)) continue; add(el, "plaza", nm || "Square", 3, "Square or pedestrian street: often ledges, benches and low walls", { Surface: surf || "unknown" }, gg, { f: { su: scat(surf) } }); continue; }
     if (t.amenity === "bench") { add(el, "ledge", (t.material || "Hard") + " bench", 3, "Bench in a hard material: might work as a ledge", { Material: t.material }, gg, { sub: "bench" }); continue; }
     if (t.barrier === "kerb") { add(el, "ledge", "Curb", 3, "Mapped curb: check if it grinds", { Type: t.kerb || "unknown" }, gg, { sub: "curb" }); continue; }
     if (/guard_rail|handrail/.test(t.barrier || "")) { add(el, "rail", "Rail", 2.5, "Mapped rail: often tall or next to traffic", { Length: `${Math.round(glen(gg))} m` }, gg); }
@@ -426,10 +558,10 @@ $("bImport").onclick = async () => {
   } catch (e) { $("ioMsg").textContent = "Copy a backup first, then press Paste backup."; }
 };
 
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (mode) setMode(null); else if (!$("card").hidden) closeCard(); } });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (mode) setMode(null); else if (!$("filters").hidden) $("filters").hidden = true; else if (!$("layers").hidden) { $("layers").hidden = true; $("bLayers").classList.remove("on"); } else if (!$("card").hidden) closeCard(); } });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { drawSurf(); render(); });
 
 // ---------- start ----------
-addSpots(mineSpots()); drawChips(); render(); setSurf(!!st.surf);
+addSpots(mineSpots()); drawChips(); drawCtx(); render(); setSurf(!!st.surf);
 loadRegions();
 })();
