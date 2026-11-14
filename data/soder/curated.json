@@ -1,0 +1,40 @@
+[
+ {
+  "id": "cur-fryshuset",
+  "k": "park",
+  "n": "Fryshuset skatepark",
+  "p": [
+   59.30107,
+   18.08871
+  ],
+  "s": 5,
+  "w": "Stockholm's best-known skatepark, indoors at Fryshuset. Not marked as a skatepark in the map data, so added by hand. Check opening hours and entry before you go.",
+  "i": {
+   "Type": "indoor skatepark",
+   "Source": "added by hand"
+  },
+  "osm": "way/229263071",
+  "f": {
+   "indoor": true
+  }
+ },
+ {
+  "id": "cur-kalltorp",
+  "k": "rink",
+  "n": "Källtorpssjön (lake ice)",
+  "p": [
+   59.2907,
+   18.16627
+  ],
+  "s": 4,
+  "w": "Natural lake ice in Nacka when it is thick enough. Check Nacka kommun's ice reports before you go out on it.",
+  "i": {
+   "Type": "natural lake ice",
+   "Source": "added by hand"
+  },
+  "osm": "",
+  "f": {
+   "su": "unknown"
+  }
+ }
+]

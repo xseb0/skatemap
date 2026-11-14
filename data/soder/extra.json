@@ -1,0 +1,577 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.4 2390de5a",
+  "osm3s": {
+    "timestamp_osm_base": "2026-11-13T23:20:20Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 11357211203,
+  "lat": 59.2619046,
+  "lon": 18.0678607,
+  "tags": {
+    "leisure": "ice_rink",
+    "operator": "Stockholms stad",
+    "seasonal": "yes",
+    "sport": "ice_skating;ice_hockey",
+    "website": "https://motionera.stockholm/skridskoakning/"
+  }
+},
+{
+  "type": "way",
+  "id": 23517554,
+  "bounds": {
+    "minlat": 59.2530832,
+    "minlon": 18.0661249,
+    "maxlat": 59.2541824,
+    "maxlon": 18.0678519
+  },
+  "geometry": [
+    { "lat": 59.2540278, "lon": 18.0678519 },
+    { "lat": 59.2538380, "lon": 18.0677549 },
+    { "lat": 59.2534816, "lon": 18.0675905 },
+    { "lat": 59.2530832, "lon": 18.0674066 },
+    { "lat": 59.2530945, "lon": 18.0673132 },
+    { "lat": 59.2532378, "lon": 18.0661249 },
+    { "lat": 59.2541824, "lon": 18.0665824 },
+    { "lat": 59.2540278, "lon": 18.0678519 }
+  ],
+  "tags": {
+    "alt_name": "BMX-bana i Hökarängen",
+    "area": "yes",
+    "bicycle": "yes",
+    "leisure": "track",
+    "lit": "yes",
+    "name": "Stockholm BMX Arena",
+    "sport": "cycling",
+    "surface": "ground",
+    "website": "https://motionera.stockholm/hitta-skatepark-och-parkourpark/skatepark/stockholm-bmx-arena/"
+  }
+},
+{
+  "type": "way",
+  "id": 24014526,
+  "bounds": {
+    "minlat": 59.2700406,
+    "minlon": 18.1277911,
+    "maxlat": 59.2706435,
+    "maxlon": 18.1291768
+  },
+  "geometry": [
+    { "lat": 59.2706435, "lon": 18.1281815 },
+    { "lat": 59.2703255, "lon": 18.1277911 },
+    { "lat": 59.2700406, "lon": 18.1288077 },
+    { "lat": 59.2703476, "lon": 18.1291768 },
+    { "lat": 59.2706435, "lon": 18.1281815 }
+  ],
+  "tags": {
+    "leisure": "pitch",
+    "lit": "yes",
+    "sport": "soccer;ice_skating",
+    "surface": "gravel"
+  }
+},
+{
+  "type": "way",
+  "id": 37350868,
+  "bounds": {
+    "minlat": 59.3151290,
+    "minlon": 18.0493424,
+    "maxlat": 59.3162381,
+    "maxlon": 18.0509755
+  },
+  "geometry": [
+    { "lat": 59.3152875, "lon": 18.0509755 },
+    { "lat": 59.3151290, "lon": 18.0498622 },
+    { "lat": 59.3160796, "lon": 18.0493424 },
+    { "lat": 59.3162381, "lon": 18.0504554 },
+    { "lat": 59.3152875, "lon": 18.0509755 }
+  ],
+  "tags": {
+    "leisure": "pitch",
+    "lit": "yes",
+    "name": "Zinkensdamms IP",
+    "sport": "bandy;ice_skating;soccer;american_football",
+    "surface": "artificial_turf",
+    "surface:winter": "ice",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 76171321,
+  "bounds": {
+    "minlat": 59.2955275,
+    "minlon": 17.9969766,
+    "maxlat": 59.2958574,
+    "maxlon": 17.9976946
+  },
+  "geometry": [
+    { "lat": 59.2957290, "lon": 17.9969766 },
+    { "lat": 59.2958574, "lon": 17.9971635 },
+    { "lat": 59.2956560, "lon": 17.9976946 },
+    { "lat": 59.2955275, "lon": 17.9975078 },
+    { "lat": 59.2957290, "lon": 17.9969766 }
+  ],
+  "tags": {
+    "leisure": "pitch",
+    "sport": "innebandy; basket"
+  }
+},
+{
+  "type": "way",
+  "id": 218175345,
+  "bounds": {
+    "minlat": 59.3001872,
+    "minlon": 18.0620289,
+    "maxlat": 59.3005936,
+    "maxlon": 18.0627627
+  },
+  "geometry": [
+    { "lat": 59.3005032, "lon": 18.0622403 },
+    { "lat": 59.3004693, "lon": 18.0624944 },
+    { "lat": 59.3004090, "lon": 18.0626446 },
+    { "lat": 59.3002365, "lon": 18.0627627 },
+    { "lat": 59.3001872, "lon": 18.0625642 },
+    { "lat": 59.3003105, "lon": 18.0623013 },
+    { "lat": 59.3003652, "lon": 18.0621565 },
+    { "lat": 59.3004696, "lon": 18.0622182 },
+    { "lat": 59.3005757, "lon": 18.0620289 },
+    { "lat": 59.3005936, "lon": 18.0620618 },
+    { "lat": 59.3005032, "lon": 18.0622403 }
+  ],
+  "tags": {
+    "area": "yes",
+    "leisure": "track",
+    "sport": "bmx",
+    "surface": "compacted"
+  }
+},
+{
+  "type": "way",
+  "id": 223683885,
+  "bounds": {
+    "minlat": 59.3113724,
+    "minlon": 18.1542664,
+    "maxlat": 59.3118353,
+    "maxlon": 18.1555411
+  },
+  "geometry": [
+    { "lat": 59.3115358, "lon": 18.1542664 },
+    { "lat": 59.3113952, "lon": 18.1552166 },
+    { "lat": 59.3113724, "lon": 18.1553711 },
+    { "lat": 59.3116719, "lon": 18.1555411 },
+    { "lat": 59.3118353, "lon": 18.1544364 },
+    { "lat": 59.3115358, "lon": 18.1542664 }
+  ],
+  "tags": {
+    "addr:city": "Nacka",
+    "addr:housenumber": "13",
+    "addr:postcode": "13152",
+    "addr:street": "Griffelvägen",
+    "building": "sports_hall",
+    "building:colour": "blue",
+    "building:levels": "1",
+    "leisure": "ice_rink",
+    "name": "Nacka istält",
+    "name:fi": "Nackan jääteltta",
+    "name:sv": "Nacka istält",
+    "phone": "+46 8 718 93 45",
+    "roof:colour": "lightgray",
+    "sport": "ice_skating"
+  }
+},
+{
+  "type": "way",
+  "id": 223683888,
+  "bounds": {
+    "minlat": 59.3109085,
+    "minlon": 18.1555172,
+    "maxlat": 59.3115100,
+    "maxlon": 18.1569819
+  },
+  "geometry": [
+    { "lat": 59.3114791, "lon": 18.1556623 },
+    { "lat": 59.3112045, "lon": 18.1555441 },
+    { "lat": 59.3111911, "lon": 18.1555383 },
+    { "lat": 59.3111868, "lon": 18.1555763 },
+    { "lat": 59.3111558, "lon": 18.1555629 },
+    { "lat": 59.3110497, "lon": 18.1555172 },
+    { "lat": 59.3109085, "lon": 18.1567754 },
+    { "lat": 59.3113877, "lon": 18.1569819 },
+    { "lat": 59.3115100, "lon": 18.1558916 },
+    { "lat": 59.3114560, "lon": 18.1558683 },
+    { "lat": 59.3114791, "lon": 18.1556623 }
+  ],
+  "tags": {
+    "addr:city": "Nacka",
+    "addr:housenumber": "11",
+    "addr:postcode": "13152",
+    "addr:street": "Griffelvägen",
+    "building": "sports_hall",
+    "building:colour": "blue",
+    "leisure": "ice_rink",
+    "name": "Nacka ishall",
+    "name:fi": "Nackan jäähalli",
+    "name:sv": "Nacka ishall",
+    "opening_hours": "Mo-Fr 09:00-20:00",
+    "phone": "+46 8 718 97 45",
+    "roof:colour": "blue",
+    "seasonal": "no",
+    "sport": "ice_hockey"
+  }
+},
+{
+  "type": "way",
+  "id": 229263071,
+  "bounds": {
+    "minlat": 59.3006334,
+    "minlon": 18.0878955,
+    "maxlat": 59.3016214,
+    "maxlon": 18.0893495
+  },
+  "geometry": [
+    { "lat": 59.3012450, "lon": 18.0893495 },
+    { "lat": 59.3012270, "lon": 18.0892750 },
+    { "lat": 59.3011416, "lon": 18.0889215 },
+    { "lat": 59.3011622, "lon": 18.0889001 },
+    { "lat": 59.3011421, "lon": 18.0887595 },
+    { "lat": 59.3011088, "lon": 18.0885273 },
+    { "lat": 59.3010266, "lon": 18.0885594 },
+    { "lat": 59.3010526, "lon": 18.0887982 },
+    { "lat": 59.3009143, "lon": 18.0888773 },
+    { "lat": 59.3008794, "lon": 18.0888973 },
+    { "lat": 59.3006979, "lon": 18.0889846 },
+    { "lat": 59.3006456, "lon": 18.0885952 },
+    { "lat": 59.3006334, "lon": 18.0885046 },
+    { "lat": 59.3006848, "lon": 18.0884787 },
+    { "lat": 59.3007400, "lon": 18.0884509 },
+    { "lat": 59.3009172, "lon": 18.0883615 },
+    { "lat": 59.3009698, "lon": 18.0883350 },
+    { "lat": 59.3009978, "lon": 18.0883209 },
+    { "lat": 59.3010713, "lon": 18.0882838 },
+    { "lat": 59.3010595, "lon": 18.0881594 },
+    { "lat": 59.3013537, "lon": 18.0878955 },
+    { "lat": 59.3015168, "lon": 18.0885639 },
+    { "lat": 59.3016214, "lon": 18.0889928 },
+    { "lat": 59.3015610, "lon": 18.0890594 },
+    { "lat": 59.3012875, "lon": 18.0893165 },
+    { "lat": 59.3012450, "lon": 18.0893495 }
+  ],
+  "tags": {
+    "addr:city": "Stockholm",
+    "addr:housenumber": "2-8",
+    "addr:postcode": "120 30",
+    "addr:street": "Mårtensdalsgatan",
+    "building": "public",
+    "building:colour": "white",
+    "building:levels": "4",
+    "description:en": "Activity center for young people in Stockholm offering social projects and educational programs",
+    "height": "30",
+    "name": "Fryshuset",
+    "operator": "YMCA",
+    "roof:levels": "0",
+    "source": "Yahoo;survey",
+    "website": "https://fryshuset.se/",
+    "wikidata": "Q5506624",
+    "wikipedia": "sv:Fryshuset"
+  }
+},
+{
+  "type": "way",
+  "id": 377428785,
+  "bounds": {
+    "minlat": 59.2759750,
+    "minlon": 17.9820766,
+    "maxlat": 59.2766687,
+    "maxlon": 17.9830152
+  },
+  "geometry": [
+    { "lat": 59.2761125, "lon": 17.9823519 },
+    { "lat": 59.2760150, "lon": 17.9826961 },
+    { "lat": 59.2759750, "lon": 17.9829338 },
+    { "lat": 59.2759798, "lon": 17.9829964 },
+    { "lat": 59.2760118, "lon": 17.9830152 },
+    { "lat": 59.2760262, "lon": 17.9830089 },
+    { "lat": 59.2760437, "lon": 17.9829651 },
+    { "lat": 59.2761380, "lon": 17.9826773 },
+    { "lat": 59.2761764, "lon": 17.9826429 },
+    { "lat": 59.2762100, "lon": 17.9826679 },
+    { "lat": 59.2764295, "lon": 17.9828629 },
+    { "lat": 59.2765057, "lon": 17.9829307 },
+    { "lat": 59.2765376, "lon": 17.9829401 },
+    { "lat": 59.2765744, "lon": 17.9829150 },
+    { "lat": 59.2765856, "lon": 17.9828681 },
+    { "lat": 59.2765776, "lon": 17.9828243 },
+    { "lat": 59.2762100, "lon": 17.9824677 },
+    { "lat": 59.2762084, "lon": 17.9823300 },
+    { "lat": 59.2762611, "lon": 17.9823081 },
+    { "lat": 59.2763011, "lon": 17.9823332 },
+    { "lat": 59.2766383, "lon": 17.9826147 },
+    { "lat": 59.2766687, "lon": 17.9825615 },
+    { "lat": 59.2766607, "lon": 17.9824739 },
+    { "lat": 59.2766383, "lon": 17.9824083 },
+    { "lat": 59.2762561, "lon": 17.9821290 },
+    { "lat": 59.2761844, "lon": 17.9820766 },
+    { "lat": 59.2761125, "lon": 17.9823519 }
+  ],
+  "tags": {
+    "alt_name": "Långbro BMX-bana",
+    "area": "no",
+    "leisure": "track",
+    "name": "Älvsjö BMX bana",
+    "note": "Banan är öppen för åkning de tider när klubben inte har träning",
+    "operator": "Älvsjö BMX",
+    "operator:url": "http://www.alvsjobmx.com/",
+    "sport": "bmx",
+    "surface": "earth",
+    "url": "http://www.alvsjobmx.com",
+    "website": "https://motionera.stockholm/hitta-skatepark-och-parkourpark/skatepark/bmx-bana-i-alvsjo"
+  }
+},
+{
+  "type": "way",
+  "id": 854059152,
+  "bounds": {
+    "minlat": 59.3147928,
+    "minlon": 18.0718817,
+    "maxlat": 59.3150089,
+    "maxlon": 18.0724440
+  },
+  "geometry": [
+    { "lat": 59.3149462, "lon": 18.0718817 },
+    { "lat": 59.3150089, "lon": 18.0723681 },
+    { "lat": 59.3148555, "lon": 18.0724440 },
+    { "lat": 59.3147928, "lon": 18.0719576 },
+    { "lat": 59.3149054, "lon": 18.0719019 },
+    { "lat": 59.3149462, "lon": 18.0718817 }
+  ],
+  "tags": {
+    "addr:city": "Stockholm",
+    "addr:place": "Medborgarplatsen",
+    "check_date": "2026-08-21",
+    "leisure": "ice_rink",
+    "name": "Medborgarplatsens isbana",
+    "operator": "Stockholms Stad",
+    "seasonal": "winter",
+    "sport": "ice_skating"
+  }
+},
+{
+  "type": "way",
+  "id": 1040944534,
+  "bounds": {
+    "minlat": 59.2523425,
+    "minlon": 18.0354263,
+    "maxlat": 59.2529970,
+    "maxlon": 18.0365539
+  },
+  "geometry": [
+    { "lat": 59.2528309, "lon": 18.0354263 },
+    { "lat": 59.2529970, "lon": 18.0360820 },
+    { "lat": 59.2525202, "lon": 18.0365539 },
+    { "lat": 59.2523425, "lon": 18.0358672 },
+    { "lat": 59.2528309, "lon": 18.0354263 }
+  ],
+  "tags": {
+    "leisure": "ice_rink",
+    "seasonal": "yes"
+  }
+},
+{
+  "type": "way",
+  "id": 1273316631,
+  "bounds": {
+    "minlat": 59.2852155,
+    "minlon": 18.1239353,
+    "maxlat": 59.2856986,
+    "maxlon": 18.1252393
+  },
+  "geometry": [
+    { "lat": 59.2856986, "lon": 18.1250824 },
+    { "lat": 59.2855674, "lon": 18.1239353 },
+    { "lat": 59.2852155, "lon": 18.1240934 },
+    { "lat": 59.2853486, "lon": 18.1252393 },
+    { "lat": 59.2856986, "lon": 18.1250824 }
+  ],
+  "tags": {
+    "building": "yes",
+    "leisure": "pitch",
+    "sport": "ice_hockey"
+  }
+},
+{
+  "type": "way",
+  "id": 1303478664,
+  "bounds": {
+    "minlat": 59.2532161,
+    "minlon": 18.0672430,
+    "maxlat": 59.2538798,
+    "maxlon": 18.0677080
+  },
+  "geometry": [
+    { "lat": 59.2538798, "lon": 18.0675917 },
+    { "lat": 59.2533340, "lon": 18.0672537 },
+    { "lat": 59.2532504, "lon": 18.0672430 },
+    { "lat": 59.2532257, "lon": 18.0672671 },
+    { "lat": 59.2532161, "lon": 18.0673878 },
+    { "lat": 59.2532655, "lon": 18.0674629 },
+    { "lat": 59.2533381, "lon": 18.0674415 },
+    { "lat": 59.2533779, "lon": 18.0674093 },
+    { "lat": 59.2534369, "lon": 18.0675246 },
+    { "lat": 59.2534816, "lon": 18.0675572 },
+    { "lat": 59.2535493, "lon": 18.0675541 },
+    { "lat": 59.2535946, "lon": 18.0675246 },
+    { "lat": 59.2536330, "lon": 18.0675434 },
+    { "lat": 59.2536618, "lon": 18.0676399 },
+    { "lat": 59.2537056, "lon": 18.0676319 },
+    { "lat": 59.2537481, "lon": 18.0676131 },
+    { "lat": 59.2538330, "lon": 18.0677080 },
+    { "lat": 59.2538688, "lon": 18.0677016 },
+    { "lat": 59.2538744, "lon": 18.0676456 },
+    { "lat": 59.2538798, "lon": 18.0675917 }
+  ],
+  "tags": {
+    "bicycle": "designated",
+    "highway": "cycleway",
+    "leisure": "track",
+    "oneway": "yes",
+    "sport": "cycling"
+  }
+},
+{
+  "type": "way",
+  "id": 1303478665,
+  "bounds": {
+    "minlat": 59.2532095,
+    "minlon": 18.0662734,
+    "maxlat": 59.2541892,
+    "maxlon": 18.0674994
+  },
+  "geometry": [
+    { "lat": 59.2541892, "lon": 18.0666820 },
+    { "lat": 59.2540449, "lon": 18.0666085 },
+    { "lat": 59.2535153, "lon": 18.0663389 },
+    { "lat": 59.2533905, "lon": 18.0662753 },
+    { "lat": 59.2532845, "lon": 18.0662734 },
+    { "lat": 59.2532365, "lon": 18.0663301 },
+    { "lat": 59.2532165, "lon": 18.0664493 },
+    { "lat": 59.2532165, "lon": 18.0665862 },
+    { "lat": 59.2532685, "lon": 18.0666996 },
+    { "lat": 59.2533255, "lon": 18.0666879 },
+    { "lat": 59.2533985, "lon": 18.0666547 },
+    { "lat": 59.2536044, "lon": 18.0667016 },
+    { "lat": 59.2539783, "lon": 18.0668991 },
+    { "lat": 59.2540129, "lon": 18.0669203 },
+    { "lat": 59.2540452, "lon": 18.0669401 },
+    { "lat": 59.2541122, "lon": 18.0671220 },
+    { "lat": 59.2541012, "lon": 18.0672393 },
+    { "lat": 59.2540972, "lon": 18.0673097 },
+    { "lat": 59.2539983, "lon": 18.0673860 },
+    { "lat": 59.2535784, "lon": 18.0670301 },
+    { "lat": 59.2533815, "lon": 18.0669421 },
+    { "lat": 59.2533015, "lon": 18.0668678 },
+    { "lat": 59.2532675, "lon": 18.0668502 },
+    { "lat": 59.2532095, "lon": 18.0668482 },
+    { "lat": 59.2532175, "lon": 18.0671005 },
+    { "lat": 59.2533065, "lon": 18.0672197 },
+    { "lat": 59.2539853, "lon": 18.0674994 }
+  ],
+  "tags": {
+    "bicycle": "designated",
+    "highway": "cycleway",
+    "leisure": "track",
+    "oneway": "yes",
+    "sport": "cycling"
+  }
+},
+{
+  "type": "way",
+  "id": 1303478675,
+  "bounds": {
+    "minlat": 59.2533255,
+    "minlon": 18.0666879,
+    "maxlat": 59.2540129,
+    "maxlon": 18.0669812
+  },
+  "geometry": [
+    { "lat": 59.2533255, "lon": 18.0666879 },
+    { "lat": 59.2534375, "lon": 18.0667505 },
+    { "lat": 59.2537983, "lon": 18.0669401 },
+    { "lat": 59.2539053, "lon": 18.0669812 },
+    { "lat": 59.2540129, "lon": 18.0669203 }
+  ],
+  "tags": {
+    "leisure": "track",
+    "oneway": "yes",
+    "sport": "cycling"
+  }
+},
+{
+  "type": "way",
+  "id": 1575897220,
+  "bounds": {
+    "minlat": 59.2566701,
+    "minlon": 17.9986603,
+    "maxlat": 59.2567811,
+    "maxlon": 17.9990918
+  },
+  "geometry": [
+    { "lat": 59.2567526, "lon": 17.9986603 },
+    { "lat": 59.2567331, "lon": 17.9986647 },
+    { "lat": 59.2567039, "lon": 17.9986790 },
+    { "lat": 59.2566807, "lon": 17.9987018 },
+    { "lat": 59.2566701, "lon": 17.9987258 },
+    { "lat": 59.2566701, "lon": 17.9987445 },
+    { "lat": 59.2566755, "lon": 17.9987656 },
+    { "lat": 59.2566975, "lon": 17.9987896 },
+    { "lat": 59.2567414, "lon": 17.9988307 },
+    { "lat": 59.2567478, "lon": 17.9988405 },
+    { "lat": 59.2567497, "lon": 17.9988754 },
+    { "lat": 59.2567347, "lon": 17.9990422 },
+    { "lat": 59.2567364, "lon": 17.9990727 },
+    { "lat": 59.2567451, "lon": 17.9990866 },
+    { "lat": 59.2567618, "lon": 17.9990918 },
+    { "lat": 59.2567742, "lon": 17.9990821 },
+    { "lat": 59.2567811, "lon": 17.9990552 },
+    { "lat": 59.2567640, "lon": 17.9986839 },
+    { "lat": 59.2567591, "lon": 17.9986676 },
+    { "lat": 59.2567526, "lon": 17.9986603 }
+  ],
+  "tags": {
+    "area": "no",
+    "cycling": "pump_track",
+    "leisure": "track",
+    "sport": "cycling;bmx;skateboard;roller_skating;kick_scooter"
+  }
+},
+{
+  "type": "way",
+  "id": 1576835315,
+  "bounds": {
+    "minlat": 59.2875907,
+    "minlon": 18.0281354,
+    "maxlat": 59.2880789,
+    "maxlon": 18.0288147
+  },
+  "geometry": [
+    { "lat": 59.2880216, "lon": 18.0281354 },
+    { "lat": 59.2880789, "lon": 18.0283541 },
+    { "lat": 59.2877054, "lon": 18.0288147 },
+    { "lat": 59.2876362, "lon": 18.0287508 },
+    { "lat": 59.2875907, "lon": 18.0285244 },
+    { "lat": 59.2877666, "lon": 18.0283096 },
+    { "lat": 59.2880216, "lon": 18.0281354 }
+  ],
+  "tags": {
+    "area": "yes",
+    "leisure": "track",
+    "sport": "bmx;mtb"
+  }
+}
+
+  ]
+}

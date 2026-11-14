@@ -1,0 +1,41 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-11-13T23:52:51Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "way",
+  "id": 1259760021,
+  "bounds": {
+    "minlat": 59.2245775,
+    "minlon": 18.1487591,
+    "maxlat": 59.2246960,
+    "maxlon": 18.1489596
+  },
+  "geometry": [
+    { "lat": 59.2246941, "lon": 18.1488868 },
+    { "lat": 59.2246960, "lon": 18.1489095 },
+    { "lat": 59.2246941, "lon": 18.1489298 },
+    { "lat": 59.2246856, "lon": 18.1489513 },
+    { "lat": 59.2246715, "lon": 18.1489596 },
+    { "lat": 59.2246569, "lon": 18.1489441 },
+    { "lat": 59.2245854, "lon": 18.1488403 },
+    { "lat": 59.2245775, "lon": 18.1488188 },
+    { "lat": 59.2245787, "lon": 18.1487889 },
+    { "lat": 59.2245848, "lon": 18.1487698 },
+    { "lat": 59.2245952, "lon": 18.1487591 },
+    { "lat": 59.2246111, "lon": 18.1487675 },
+    { "lat": 59.2246941, "lon": 18.1488868 }
+  ],
+  "tags": {
+    "leisure": "track",
+    "sport": "bmx"
+  }
+}
+
+  ]
+}

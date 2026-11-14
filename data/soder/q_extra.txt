@@ -1,0 +1,8 @@
+[out:json][timeout:120];
+(
+  nwr["leisure"="ice_rink"](59.24,17.98,59.32,18.20);
+  nwr["leisure"="pitch"]["sport"~"ice_hockey|ice_skating|bandy"](59.24,17.98,59.32,18.20);
+  nwr["leisure"="track"]["sport"~"bmx|cycling|skateboard|roller"](59.24,17.98,59.32,18.20);
+  nwr["name"~"BMX|Fryshuset",i](59.24,17.98,59.32,18.20);
+);
+out tags geom;
