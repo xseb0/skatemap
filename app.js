@@ -260,8 +260,8 @@ function drawList(vs) {
   let inView = vs.filter((s) => b.contains(s.p));
   inView.forEach((s) => (s._d = dist(ref, s.p)));
   inView.sort((a, c) => a._d - c._d);
-  $("sheetTitle").textContent = me ? "Spots near you" : "Spots in view";
-  $("sheetSub").textContent = zoomMin() > st.min ? `${inView.length} · top rated, zoom in for all` : `${inView.length}`;
+  $("sheetTitle").textContent = $("sheet").classList.contains("collapsed") ? "List" : (me ? "Spots near you" : "Spots in view");
+  $("sheetSub").textContent = zoomMin() > st.min && !$("sheet").classList.contains("collapsed") ? `${inView.length} · top rated, zoom in for all` : `${inView.length}`;
   if (!inView.length) { $("list").innerHTML = `<div class="empty">No spots here with these filters. Turn on more categories, zoom out, or tap the search button on the right to find spots in this area.</div>`; return; }
   $("list").innerHTML = inView.slice(0, 120).map((s) => {
     const n = st.notes[s.id];
@@ -269,7 +269,7 @@ function drawList(vs) {
   }).join("") + (inView.length > 120 ? `<div class="empty">Showing the 120 closest of ${inView.length}.</div>` : "");
 }
 $("list").onclick = (e) => { const b = e.target.closest(".item"); if (b) open(byId.get(b.dataset.id), true); };
-$("sheetBar").onclick = () => { const c = $("sheet").classList.toggle("collapsed"); $("sheetBar").setAttribute("aria-expanded", !c); };
+$("sheetBar").onclick = () => { const c = $("sheet").classList.toggle("collapsed"); $("sheetBar").setAttribute("aria-expanded", !c); $("sheetTitle").textContent = c ? "List" : (me ? "Spots near you" : "Spots in view"); drawList(); };
 let mvT; map.on("moveend zoomend", () => { clearTimeout(mvT); mvT = setTimeout(() => { st.view = { c: [map.getCenter().lat, map.getCenter().lng], z: map.getZoom() }; save(); render(); }, 200); });
 
 // ---------- spot card with Street View ----------
@@ -340,7 +340,7 @@ function setNote(s, patch) {
   const keepText = $("nText") ? $("nText").value : null;
   open(s); if (keepText !== null && $("nText")) $("nText").value = keepText; drawList();
 }
-function closeCard() { const was = sel; document.body.classList.remove("card-open"); $("card").hidden = true; $("card").innerHTML = ""; hiLayer.clearLayers(); sel = null; if (was && (was.k === "route" || was.k === "hill")) render(); else drawList(); }
+function closeCard() { const was = sel; if (was && was.id === "plan") routeLayer.clearLayers(); document.body.classList.remove("card-open"); $("card").hidden = true; $("card").innerHTML = ""; hiLayer.clearLayers(); sel = null; if (was && (was.k === "route" || was.k === "hill")) render(); else drawList(); }
 
 // ---------- my location ----------
 let watchId = null, meDot = null, meAcc = null, follow = false;
@@ -373,6 +373,7 @@ $("bRoute").onclick = () => { routeA = null; routeLayer.clearLayers(); setMode(m
 map.on("click", (e) => tap([e.latlng.lat, e.latlng.lng]));
 function tap(ll) {
   const p = [+ll[0].toFixed(6), +ll[1].toFixed(6)];
+  if (!mode && !$("card").hidden) { closeCard(); return; }  // tapping empty map deselects
   if (mode === "add") { setMode(null); addForm(p); return; }
   if (mode === "route") {
     if (!routeA) { routeA = p; routeLayer.clearLayers(); L.circleMarker(p, { radius: 8, color: css("--c-route"), fillOpacity: 1 }).addTo(routeLayer); hint("Now tap the destination"); return; }
@@ -381,7 +382,7 @@ function tap(ll) {
     showRoute(r);
   }
 }
-function pick(s, e) { L.DomEvent.stop(e); if (mode) tap([e.latlng.lat, e.latlng.lng]); else open(s); }
+function pick(s, e) { L.DomEvent.stop(e); if (mode) tap([e.latlng.lat, e.latlng.lng]); else if (sel && sel.id === s.id) closeCard(); else open(s); }
 function addForm(p) {
   sel = null; hiLayer.clearLayers(); L.circleMarker(p, { radius: 9, color: css("--accent"), fillOpacity: .6 }).addTo(hiLayer);
   $("card").innerHTML = `<button class="x" aria-label="Close" style="background:var(--hover);color:var(--ink)">×</button><div class="body" style="padding-top:18px">
