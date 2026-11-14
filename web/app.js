@@ -30,7 +30,7 @@ const bearing = (a, b) => { const r = Math.PI / 180; return ((Math.atan2((b[1] -
 
 // ---------- state ----------
 let st = {}; try { st = JSON.parse(localStorage.getItem("skatemap") || "{}"); } catch (e) {}
-const save = () => { try { localStorage.setItem("skatemap", JSON.stringify(st)); } catch (e) {} };
+const save = () => { try { localStorage.setItem("skatemap", JSON.stringify(st)); } catch (e) {} syncHash(); };
 st.on = Object.assign({ park: 1, pump: 1, rink: 1, steps: 1, longsteps: 1, hill: 1, ledge: 1, rail: 1, plaza: 1, flat: 0, route: 0, mine: 1 }, st.on || {});
 const FDEF = { nMin: 0, nMax: 99, stepType: "any", rail: false, pavedEnds: false, hasCount: false,
   flatType: { court: true, parking: true, schoolyard: true }, surf: { asphalt: true, concrete: true, "court surface": true, "paving stones": true, paved: true, unknown: true },
@@ -39,6 +39,43 @@ st.f = Object.assign(JSON.parse(JSON.stringify(FDEF)), st.f || {});
 st.f.hillLv = Object.assign({}, FDEF.hillLv, st.f.hillLv);
 if (st.f.stepType === "long") st.f.stepType = "any";
 st.notes = st.notes || {}; st.mine = st.mine || []; st.min = st.min || 1;
+
+// ---------- shareable links: the address holds the view, categories, filters, map style and selection ----------
+// #v=lat,lon,zoom&on=park.steps&min=4&f=<filters>&b=satellite&sat=0.6&sf=1&s=<spot id>&r=<route start,end>
+const b64e = (o) => btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const b64d = (s) => JSON.parse(decodeURIComponent(escape(atob(s.replace(/-/g, "+").replace(/_/g, "/")))));
+const LINK = {};
+(() => {
+  const raw = location.hash.slice(1); if (!raw.includes("=")) return;
+  for (const part of raw.split("&")) { const i = part.indexOf("="); if (i > 0) LINK[part.slice(0, i)] = decodeURIComponent(part.slice(i + 1)); }
+  if (LINK.v) { const [la, lo, z] = LINK.v.split(",").map(Number); if (isFinite(la) && isFinite(lo)) st.view = { c: [la, lo], z: isFinite(z) ? z : 15 }; }
+  if (LINK.on !== undefined) { const on = new Set(LINK.on.split(".")); for (const k of Object.keys(st.on)) st.on[k] = on.has(k) ? 1 : 0; }
+  st.min = +LINK.min || 1;
+  let f = {}; try { if (LINK.f) f = b64d(LINK.f); } catch (e) {}
+  st.f = Object.assign(JSON.parse(JSON.stringify(FDEF)), f);
+  for (const g of ["flatType", "surf", "hillLv"]) st.f[g] = Object.assign({}, FDEF[g], f[g]);
+  st.base = LINK.b || "streets"; st.sat = !!LINK.sat; if (LINK.sat) st.satOp = +LINK.sat || 0.6; st.surf = LINK.sf === "1";
+})();
+let lastHash = location.hash, hashT;
+function linkHash() {
+  const c = map.getCenter(), parts = [`v=${c.lat.toFixed(5)},${c.lng.toFixed(5)},${map.getZoom()}`, `on=${Object.keys(KINDS).filter((k) => st.on[k]).join(".")}`];
+  if (st.min > 1) parts.push(`min=${st.min}`);
+  const diff = {}; for (const k in FDEF) if (JSON.stringify(st.f[k]) !== JSON.stringify(FDEF[k])) diff[k] = st.f[k];
+  if (Object.keys(diff).length) parts.push(`f=${b64e(diff)}`);
+  if (st.base && st.base !== "streets") parts.push(`b=${st.base}`);
+  if (st.sat) parts.push(`sat=${st.satOp || 0.6}`);
+  if (st.surf) parts.push("sf=1");
+  if (sel && sel.id === "plan" && sel.ends) parts.push(`r=${sel.ends.flat().map((x) => x.toFixed(5)).join(",")}`);
+  else if (sel && sel.id !== "plan") parts.push(`s=${encodeURIComponent(sel.id)}`);
+  return "#" + parts.join("&");
+}
+function syncHash() { clearTimeout(hashT); hashT = setTimeout(() => { try { lastHash = linkHash(); history.replaceState(null, "", lastHash); } catch (e) {} }, 250); }
+window.addEventListener("hashchange", () => { if (location.hash !== lastHash) location.reload(); });  // a pasted link opens as that link
+async function shareLink(title) {
+  const url = location.href.split("#")[0] + linkHash();
+  try { if (navigator.share && matchMedia("(pointer:coarse)").matches) { await navigator.share({ title: title || "Skate Map", url }); return "Shared"; } } catch (e) { if (e.name === "AbortError") return ""; }
+  try { await navigator.clipboard.writeText(url); return "Link copied"; } catch (e) { prompt("Copy this link", url); return ""; }
+}
 let spots = [], byId = new Map(), me = null, sel = null, mode = null;
 const colorOf = (s) => css(SUBC[s.sub] || KINDS[s.k].c);
 
@@ -199,6 +236,9 @@ async function loadRegions() {
     } catch (e) { console.warn("region failed", r, e); }
   }
   buildGraph();
+  if (LINK.s && byId.get(LINK.s)) open(byId.get(LINK.s));
+  else if (LINK.r) { const n = LINK.r.split(",").map(Number); if (n.length === 4) { const A = [n[0], n[1]], B = [n[2], n[3]], r = plan(A, B); if (r) showRoute(r, A, B); } }
+  if (LINK.v) { const [la, lo, z] = LINK.v.split(",").map(Number); map.setView([la, lo], z); }  // keep the shared view, even after opening the spot
 }
 
 // ---------- render markers + list ----------
@@ -315,6 +355,7 @@ function open(s, fly) {
       ${s.prof ? profSVG(s.prof, col) : ""}
       ${s.i ? `<dl>${Object.entries(s.i).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>` : ""}
       <div class="links">
+        <button class="btn primary" id="cShare">Share link</button>
         <a href="${svUrl(s)}" target="_blank" rel="noopener">Open Street View</a>
         <a href="https://www.google.com/maps/dir/?api=1&destination=${la},${lo}&travelmode=walking" target="_blank" rel="noopener">Directions</a>
         <a href="https://www.google.com/maps/search/?api=1&query=${la},${lo}" target="_blank" rel="noopener">Google Maps</a>
@@ -332,6 +373,8 @@ function open(s, fly) {
   $("card").hidden = false; $("card").scrollTop = 0; document.body.classList.add("card-open");
   if (s.k === "route" || s.k === "hill") render();
   $("card").querySelector(".x").onclick = closeCard;
+  $("cShare").onclick = async () => { const m = await shareLink(s.n); if (m) hint(m, 2000); };
+  syncHash();
   $("card").querySelectorAll("[data-st]").forEach((b) => (b.onclick = () => { const v = b.dataset.st; setNote(s, { status: n.status === v ? null : v }); }));
   const ns = $("nSave"); if (ns) ns.onclick = () => { setNote(s, { text: $("nText").value.trim() }); $("nMsg").textContent = "Saved"; };
   const nd = $("nDel"); if (nd) nd.onclick = () => { st.mine = st.mine.filter((m) => m.id !== s.id); save(); refreshMine(); closeCard(); drawChips(); render(); };
@@ -343,7 +386,7 @@ function setNote(s, patch) {
   const keepText = $("nText") ? $("nText").value : null;
   open(s); if (keepText !== null && $("nText")) $("nText").value = keepText; drawList();
 }
-function closeCard() { const was = sel; if (was && was.id === "plan") routeLayer.clearLayers(); document.body.classList.remove("card-open"); $("card").hidden = true; $("card").innerHTML = ""; hiLayer.clearLayers(); sel = null; if (was && (was.k === "route" || was.k === "hill")) render(); else drawList(); }
+function closeCard() { setTimeout(syncHash); const was = sel; if (was && was.id === "plan") routeLayer.clearLayers(); document.body.classList.remove("card-open"); $("card").hidden = true; $("card").innerHTML = ""; hiLayer.clearLayers(); sel = null; if (was && (was.k === "route" || was.k === "hill")) render(); else drawList(); }
 
 // ---------- my location ----------
 let watchId = null, meDot = null, meAcc = null, follow = false;
@@ -380,9 +423,9 @@ function tap(ll) {
   if (mode === "add") { setMode(null); addForm(p); return; }
   if (mode === "route") {
     if (!routeA) { routeA = p; routeLayer.clearLayers(); L.circleMarker(p, { radius: 8, color: css("--c-route"), fillOpacity: 1 }).addTo(routeLayer); hint("Now tap the destination"); return; }
-    const r = plan(routeA, p); setMode(null); routeA = null;
+    const A = routeA, r = plan(routeA, p); setMode(null); routeA = null;
     if (!r) { hint("No smooth path found between those points. Routes work inside Söder and Vallentuna–Täby.", 4500); return; }
-    showRoute(r);
+    showRoute(r, A, p);
   }
 }
 function pick(s, e) { L.DomEvent.stop(e); if (mode) tap([e.latlng.lat, e.latlng.lng]); else if (sel && sel.id === s.id) closeCard(); else open(s); }
@@ -434,14 +477,14 @@ function plan(A, B) {
   for (let i = 0; i < path.length - 1; i++) { const u = G.n[path[i]], v = G.n[path[i + 1]], l = dist(u, v); L += l; if (qs[i] >= 3) good += l; if (qs[i] === 0) road += l; if (u[2] != null && v[2] != null) { const dh = v[2] - u[2]; if (dh > 0) up += dh; else down -= dh; } }
   return { path, L, good, road, up, down };
 }
-function showRoute(r) {
+function showRoute(r, A, B) {
   routeLayer.clearLayers();
   const g = r.path.map((i) => [G.n[i][0], G.n[i][1]]);
   L.polyline(g, { renderer: R, color: css("--c-route"), weight: 6, opacity: .9 }).addTo(routeLayer);
   L.circleMarker(g[0], { radius: 8, color: css("--c-route"), fillOpacity: 1 }).addTo(routeLayer);
   L.circleMarker(g[g.length - 1], { radius: 8, color: css("--accent"), fillOpacity: 1 }).addTo(routeLayer);
   const hs = r.path.map((i) => G.n[i][2]).filter((x) => x != null), mn = Math.min(...hs), step = Math.max(1, Math.floor(hs.length / 80));
-  const s = { id: "plan", k: "route", sub: "plan", n: "Your route", p: g[0], g, s: r.good / r.L > .75 ? 5 : r.good / r.L > .5 ? 4 : 3,
+  const s = { id: "plan", ends: A && B ? [A, B] : null, k: "route", sub: "plan", n: "Your route", p: g[0], g, s: r.good / r.L > .75 ? 5 : r.good / r.L > .5 ? 4 : 3,
     w: `${fmtD(r.L)}, ${Math.round((r.good / r.L) * 100)} % smooth asphalt bike path${r.road > 50 ? `, ${fmtD(r.road)} on residential streets` : ""}.`,
     prof: hs.filter((_, i) => i % step === 0).map((x) => x - mn),
     i: { Length: fmtD(r.L), Uphill: `${Math.round(r.up)} m`, Downhill: `${Math.round(r.down)} m`, "Smooth bike path": `${Math.round((r.good / r.L) * 100)} %`, "Residential street": fmtD(r.road) } };
@@ -562,6 +605,7 @@ $("bImport").onclick = async () => {
   } catch (e) { $("ioMsg").textContent = "Copy a backup first, then press Paste backup."; }
 };
 
+$("bShareView").onclick = async (e) => { e.stopPropagation(); const m = await shareLink(); if (m) hint(m, 2000); };
 // Done buttons on the panels, and keep touches on panels from moving the map
 document.querySelectorAll("[data-close]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); $(b.dataset.close).hidden = true; if (b.dataset.close === "layers") $("bLayers").classList.remove("on"); }));
 for (const el of document.querySelectorAll(".top, .fab, .pop, .sheet, .card, .hint")) { L.DomEvent.disableClickPropagation(el); L.DomEvent.disableScrollPropagation(el); }
