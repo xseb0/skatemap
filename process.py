@@ -213,6 +213,24 @@ if os.path.exists(os.path.join(D, "city.json")):  # Stockholm city's own lists (
             if twin["n"] in ("Skatepark", "Pump track", "BMX track", "Outdoor ice rink") or twin["n"].startswith(("Skatepark, ", "Pump track, ", "Outdoor ice rink")): twin["n"] = c["n"]
             continue
         out.append(c)
+# Trucks & Fins (trucksandfins.com) skatepark directory for Sweden: names, positions and features, linked back to the source
+TF = os.path.join(HERE, "data", "trucksandfins_se.json")
+if os.path.exists(TF):
+    s_, w_, n_, e_ = bbox; FEAT = {"bowl": "bowl", "concrete": "concrete park", "diy": "DIY", "indoor": "indoor / sheltered", "pump": "pump track", "street": "street spot"}
+    for t in json.load(open(TF)):
+        p_ = [round(t["lat"], 6), round(t["lon"], 6)]
+        if not (s_ - .01 < p_[0] < n_ + .01 and w_ - .02 < p_[1] < e_ + .02) or "rip" in t["tags"]: continue
+        kind = "pump" if ("pump" in t["tags"] or re.search(r"pump|bmx", t["n"], re.I)) else "park"
+        twin = next((o for o in out if o["k"] in ("park", "pump") and dist(o["p"], p_) < 150), None)
+        feats = ", ".join(FEAT[x] for x in t["tags"] if x in FEAT)
+        if twin:
+            twin["tf"] = t["url"]
+            if feats: twin.setdefault("i", {})["Features"] = feats
+            if twin["n"] in ("Skatepark", "Pump track") or twin["n"].startswith(("Skatepark, ", "Pump track, ")): twin["n"] = t["n"]
+            continue
+        out.append({"id": "tf-" + t["url"].rstrip("/").split("/")[-1], "k": kind, "n": t["n"], "p": p_, "s": 5,
+                    "w": ("Street spot" if "street" in t["tags"] else "DIY spot" if "diy" in t["tags"] else "Built for riding") + (f" ({feats})" if feats else "") + ". Listed on Trucks & Fins.",
+                    "i": {"Features": feats or "not listed", "Source": "trucksandfins.com"}, "osm": "", "tf": t["url"], "f": {"indoor": "indoor" in t["tags"]}})
 print("spots:", collections.Counter(s["k"] for s in out))
 
 # ---------- paved path network ----------

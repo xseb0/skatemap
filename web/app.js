@@ -65,7 +65,7 @@ function setBase(k) {
 }
 $("basegrid").innerHTML = Object.entries(BASES).map(([k, v]) => `<button data-k="${k}" style="--sw:${v.sw}"><i></i>${v.l}</button>`).join("");
 $("basegrid").onclick = (e) => { const b = e.target.closest("button"); if (b) setBase(b.dataset.k); };
-map.createPane("sat"); map.getPane("sat").style.zIndex = 250;
+map.createPane("sat"); map.getPane("sat").style.zIndex = 250; map.getPane("sat").style.pointerEvents = "none";
 const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { pane: "sat", maxZoom: 20, maxNativeZoom: 19, opacity: st.satOp || 0.6, attribution: "Imagery © Esri" });
 function setSat(on) { $("satOn").checked = on; if (on) sat.addTo(map); else sat.remove(); st.sat = on; save(); }
 $("satOn").onchange = (e) => setSat(e.target.checked);
@@ -76,7 +76,7 @@ $("bLayers").onclick = () => { $("layers").hidden = !$("layers").hidden; $("bLay
 map.on("click", () => { if (!$("layers").hidden) { $("layers").hidden = true; $("bLayers").classList.remove("on"); } if (!$("filters").hidden) $("filters").hidden = true; });
 
 const R = L.canvas({ padding: 0.3, tolerance: 8 });
-map.createPane("hi"); map.getPane("hi").style.zIndex = 450;
+map.createPane("hi"); map.getPane("hi").style.zIndex = 450; map.getPane("hi").style.pointerEvents = "none";  // never block taps on the spots below
 const RH = L.canvas({ padding: 0.3, pane: "hi" });  // selected spot/route is drawn on its own layer above everything
 function darken(c, f = 0.62) {
   const m = c.match(/^#([0-9a-f]{6})$/i); if (!m) return c;
@@ -189,7 +189,7 @@ const G = { n: [], e: [] };
 async function loadRegions() {
   for (const r of REGIONS) {
     try {
-      const d = await (await fetch(`regions/${r}.json?v=2026-11-14d`)).json();
+      const d = await (await fetch(`regions/${r}.json?v=2026-11-14e`)).json();
       addSpots(d.spots);
       for (const q of ["1", "2", "3"]) surfData[q].push(...d.surf[q]);
       const off = G.n.length; G.n.push(...d.graph.n); for (const [a, b, l, q] of d.graph.e) G.e.push([a + off, b + off, l, q]);
@@ -220,11 +220,11 @@ function passes(s) {
   return true;
 }
 const THIN = new Set(["steps", "hill", "flat", "plaza"]);  // only the big categories are thinned out when zoomed out
-function visible() { const zm = zoomMin(); return spots.filter((s) => st.on[s.k] && passes(s) && (s.k === "mine" || (s.s >= st.min && (!THIN.has(s.k) || s.s >= zm)))); }
+function visible() { return spots.filter((s) => st.on[s.k] && passes(s) && (s.k === "mine" || s.s >= st.min)); }
 function render() {
   spotLayer.clearLayers(); lineLayer.clearLayers();
   const vs = visible(), z = map.getZoom();
-  const rad = z >= 17 ? 9 : z >= 15 ? 7 : z >= 13 ? 5 : 3.5;
+  const rad = z >= 17 ? 9 : z >= 15 ? 7 : z >= 14 ? 5 : z >= 13 ? 4 : 3;
   const ink = css("--panel");
   for (const s of vs) {
     const col = colorOf(s);
@@ -232,7 +232,7 @@ function render() {
     if ((s.k === "route" || s.k === "hill") && s.g && z >= 13) L.polyline(s.g, { renderer: R, color: col, weight: s.k === "route" ? 4 : 5, opacity: focus ? 0.12 : s.k === "route" ? .55 : .8 }).on("click", (e) => pick(s, e)).addTo(lineLayer);
     if (s.k === "hill" && s.g && z >= 15 && !focus) arrows(s.g, col, z, lineLayer, R);
     if (s.k === "mine") L.marker(s.p, { icon: L.divIcon({ className: "", html: `<div class="mine-pin"></div>`, iconSize: [16, 16] }), title: s.n }).on("click", (e) => pick(s, e)).addTo(spotLayer);
-    else L.circleMarker(s.p, { renderer: R, radius: s.s >= 5 ? rad + 1.5 : rad, color: ink, weight: 2, fillColor: col, fillOpacity: 1 }).on("click", (e) => pick(s, e)).addTo(spotLayer);
+    else L.circleMarker(s.p, { renderer: R, radius: s.s >= 5 ? rad + 1.5 : rad, color: ink, weight: z >= 14 ? 2 : 1, fillColor: col, fillOpacity: 1 }).on("click", (e) => pick(s, e)).addTo(spotLayer);
   }
   drawList(vs);
 }
@@ -261,7 +261,7 @@ function drawList(vs) {
   inView.forEach((s) => (s._d = dist(ref, s.p)));
   inView.sort((a, c) => a._d - c._d);
   $("sheetTitle").textContent = $("sheet").classList.contains("collapsed") ? "List" : (me ? "Spots near you" : "Spots in view");
-  $("sheetSub").textContent = zoomMin() > st.min && !$("sheet").classList.contains("collapsed") ? `${inView.length} · top rated, zoom in for all` : `${inView.length}`;
+  $("sheetSub").textContent = `${inView.length}`;
   if (!inView.length) { $("list").innerHTML = `<div class="empty">No spots here with these filters. Turn on more categories, zoom out, or tap the search button on the right to find spots in this area.</div>`; return; }
   $("list").innerHTML = inView.slice(0, 120).map((s) => {
     const n = st.notes[s.id];
@@ -317,6 +317,7 @@ function open(s, fly) {
         <a href="https://www.google.com/maps/dir/?api=1&destination=${la},${lo}&travelmode=walking" target="_blank" rel="noopener">Directions</a>
         <a href="https://www.google.com/maps/search/?api=1&query=${la},${lo}" target="_blank" rel="noopener">Google Maps</a>
         ${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">City page</a>` : ""}
+        ${s.tf ? `<a href="${esc(s.tf)}" target="_blank" rel="noopener">Trucks &amp; Fins</a>` : ""}
         ${s.osm ? `<a href="https://www.openstreetmap.org/${s.osm}" target="_blank" rel="noopener">OpenStreetMap</a>` : ""}
       </div>
       ${s.id === "plan" ? "" : `<div class="notes">
