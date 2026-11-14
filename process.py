@@ -394,6 +394,69 @@ for h in hills:
 hills = kept
 print("hills:", len(hills), collections.Counter(h["s"] for h in hills))
 
+# ---------- possible stairs, found in the 1 m ground model ----------
+# Many stair sets are not drawn in OpenStreetMap. Along every path we look for short stretches where the ground
+# drops at least a metre at stair-like steepness. Spots near mapped stairs are skipped.
+maybe = []
+if USE_DEM:
+    mapped = collections.defaultdict(list)
+    for el in spots:
+        if el.get("tags", {}).get("highway") == "steps":
+            for q in geom(el): mapped[(int(q[0] * 2000), int(q[1] * 1000))].append(q)
+    def near_mapped(p, r=20):
+        gx, gy = int(p[0] * 2000), int(p[1] * 1000)
+        return any(dist(p, q) < r for dx in (-1, 0, 1) for dy in (-1, 0, 1) for q in mapped.get((gx + dx, gy + dy), []))
+    seenm = collections.defaultdict(list)
+    for el in base:
+        t = el.get("tags", {}); hw = t.get("highway")
+        if hw not in ("footway", "path", "pedestrian") or el["id"] in BRIDGE or t.get("bicycle") == "designated": continue
+        if bad(t) or t.get("indoor") == "yes": continue
+        g = geom(el)
+        if len(g) < 2 or glen(g) < 6: continue
+        sp = sample_points(g, 2)
+        hs = [H(q) for q in sp]
+        if None in hs: continue
+        cum = [0]
+        for i in range(len(sp) - 1): cum.append(cum[-1] + dist(sp[i], sp[i + 1]))
+        i = 0
+        while i < len(sp) - 2:
+            best = None
+            for j in range(i + 2, len(sp)):
+                L = cum[j] - cum[i]
+                if L > 25: break
+                dh = hs[j] - hs[i]
+                if abs(dh) >= 1.0 and abs(dh) / L >= 0.30:
+                    mono = all((hs[k + 1] - hs[k]) * dh >= -0.15 for k in range(i, j))
+                    if mono and (not best or abs(dh) > abs(best[2])): best = (i, j, dh, L)
+            if not best: i += 1; continue
+            bi, bj, dh, L = best
+            # grow while the drop continues at stair-like steepness
+            while bj + 1 < len(sp) and (hs[bj + 1] - hs[bj]) * dh > 0 and abs(hs[bj + 1] - hs[bj]) / max(0.5, cum[bj + 1] - cum[bj]) >= 0.2:
+                bj += 1
+            dh = hs[bj] - hs[bi]; L = cum[bj] - cum[bi]
+            seg = sp[bi:bj + 1]; mid = seg[len(seg) // 2]
+            # side check: the drop must run along the path, not across it (a path beside a bank or wall fools the model)
+            a_, b_ = seg[0], seg[-1]; k_ = math.cos(math.radians(mid[0]))
+            vx, vy = (b_[1] - a_[1]) * k_, b_[0] - a_[0]; vl = math.hypot(vx, vy) or 1
+            px_, py_ = -vy / vl, vx / vl  # unit perpendicular in (east, north) degrees-ish
+            off = 3 / 111000
+            hl = H((mid[0] + py_ * off, mid[1] + px_ * off / k_)); hr = H((mid[0] - py_ * off, mid[1] - px_ * off / k_))
+            side = abs((hl or 0) - (hr or 0)) / 6 if hl is not None and hr is not None else 9
+            if side >= abs(dh) / L * 0.8 or abs(dh) < 1.2: i = bj + 1; continue
+            if not near_mapped(mid) and not any(dist(mid, q) < 25 for q in seenm[(int(mid[0] * 2000), int(mid[1] * 1000))]):
+                seenm[(int(mid[0] * 2000), int(mid[1] * 1000))].append(mid)
+                if dh > 0: seg = seg[::-1]
+                n_est = max(2, round(abs(dh) / 0.15)); tread = L / n_est
+                kind = "long" if tread >= 0.6 else "short" if n_est <= 4 else "stairs"
+                maybe.append({"id": f"{REGION[:2]}m{el['id']}_{bi}", "k": "maybesteps", "n": "Possible stairs" + (", " + t["name"] if t.get("name") else ""),
+                              "p": [round(mid[0], 5), round(mid[1], 5)], "g": r5(seg), "s": 3, "sub": None,
+                              "w": f"The ground drops {abs(dh):.1f} m over {L:.0f} m here ({abs(dh)/L*100:.0f} %), which looks like stairs or a steep ramp. Not drawn as stairs in the map data: check Street View.",
+                              "i": {"Drop": f"{abs(dh):.1f} m", "Length": f"{L:.0f} m", "Steps if 15 cm high": f"~{n_est}", "Depth per step": f"~{tread*100:.0f} cm" + (" (long, low steps?)" if kind == "long" else ""), "Path": hw + (", " + sv(t.get("surface")) if t.get("surface") else "")},
+                              "osm": f"way/{el['id']}", "f": {"n": n_est, "tr": round(tread * 100), "kind": kind}})
+            i = bj + 1
+    print("possible stairs:", len(maybe), collections.Counter(m["f"]["kind"] for m in maybe))
+hills += maybe
+
 # ---------- street names for generic names ----------
 grid = collections.defaultdict(list)
 for el in base:
@@ -409,7 +472,7 @@ def street(p, maxd=120):
                 if d < maxd and (best is None or d < best[0]): best = (d, nm)
     return best[1] if best else None
 GENERIC = {"Short stairs", "Long-tread stairs", "Stairs", "Court", "Basketball court", "Large car park", "Pedestrian street", "Square",
-           "Hill on bike path", "Hill on footpath", "Hill on quiet road", "Hill on street", "Curb", "Rail", "Skatepark", "Pump track"}
+           "Hill on bike path", "Hill on footpath", "Hill on quiet road", "Hill on street", "Possible stairs", "Curb", "Rail", "Skatepark", "Pump track"}
 for s in out + hills:
     if s["n"] in GENERIC or s["n"].endswith(" bench"):
         st = street(s["p"])

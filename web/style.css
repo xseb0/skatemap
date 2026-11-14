@@ -217,3 +217,5 @@ textarea{min-height:60px;resize:vertical}
 .chips{touch-action:pan-x;overscroll-behavior:contain}
 .top,.pop,.sheet,.card,.ctx{touch-action:manipulation}
 .pop,.list,.card,.ctx{overscroll-behavior:contain}
+:root{--c-maybe:#B5838D}
+@media (prefers-color-scheme:dark){:root{--c-maybe:#D9A3AD}}
