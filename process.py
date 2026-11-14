@@ -257,6 +257,15 @@ for el in base:
         roads.append({"g": geom(el), "hw": hw, "q": 0, "surf": t.get("surface"), "lit": t.get("lit"), "name": t.get("name", ""), "id": el["id"]})
     elif hw in ("service", "track") and t.get("surface") in ("asphalt", "concrete", "paved") and not bad(t) and t.get("service") not in ("driveway", "parking_aisle", "drive-through") and t.get("access") not in ("private", "no"):
         roads.append({"g": geom(el), "hw": hw, "q": 2, "surf": t.get("surface"), "lit": t.get("lit"), "name": t.get("name", ""), "id": el["id"]})
+    elif hw == "service" and not t.get("surface") and t.get("service") not in ("driveway", "parking_aisle", "drive-through") and t.get("access") not in ("private", "no"):
+        # lanes in housing areas are nearly always asphalt but often lack a surface tag
+        roads.append({"g": geom(el), "hw": hw, "q": 2, "surf": None, "lit": t.get("lit"), "name": t.get("name", ""), "id": el["id"], "unk": True})
+unknown_paths = []  # footpaths with no surface tag: only used to find hills, flagged so they can be filtered out
+for el in base:
+    t = el.get("tags", {})
+    if t.get("highway") in ("footway", "path") and not t.get("surface") and not bad(t) and t.get("access") not in ("private", "no"):
+        g = geom(el)
+        if len(g) >= 2: unknown_paths.append({"g": g, "hw": t["highway"], "q": 1, "surf": None, "lit": t.get("lit"), "name": t.get("name", ""), "id": el["id"], "unk": True})
 print("paths", len(paths), "roads", len(roads))
 
 # ---------- elevations ----------
@@ -298,7 +307,7 @@ def chain_named(items):
 hill_extra = chain_named(cand)
 print("joined named lines:", len(hill_extra))
 need = set()
-for p in cand + hill_extra:
+for p in cand + hill_extra + unknown_paths:
     p["sp"] = sample_points(p["g"])
     for q in p["sp"]:
         if ek(q) not in elev: need.add(ek(q))
@@ -330,7 +339,7 @@ def H(q):
 
 # ---------- hills ----------
 hills = []
-for p in hill_extra + cand:
+for p in hill_extra + cand + unknown_paths:
     sp = p["sp"]; hs = [H(q) for q in sp]
     if any(h is None for h in hs) or len(sp) < 5: continue
     sm = [sum(hs[max(0, i - 1):i + 2]) / len(hs[max(0, i - 1):i + 2]) for i in range(len(hs))]
@@ -357,8 +366,8 @@ for p in hill_extra + cand:
                   "p": [round(seg[0][0], 5), round(seg[0][1], 5)], "g": r5(seg),
                   "s": 5 if (0.035 <= gr <= 0.075 and L >= 200 and (p["q"] >= 3 or p["surf"] == "asphalt")) else (4 if (0.03 <= gr <= 0.09 and L >= 130) or (gr >= 0.025 and L >= 250 and (p["q"] >= 3 or p["surf"] == "asphalt")) else 3),
                   "w": f"{L:.0f} m downhill, {abs(dh):.0f} m drop ({gr*100:.1f} %): {level}" + (" on smooth asphalt" if (p["q"] >= 3 or p["surf"] == "asphalt") else "") + {"cycleway": "; bike path, no cars", "service": "; quiet service road", "track": "; quiet paved track", "unclassified": "; minor road, some cars", "residential": "; residential street, watch for cars", "living_street": "; residential street, watch for cars"}.get(p["hw"], ""),
-                  "f": {"lv": level, "cf": p["hw"] in ("cycleway", "footway", "path", "pedestrian", "service", "track")},
-                  "i": {"Length": f"{L:.0f} m", "Drop": f"{abs(dh):.0f} m", "Grade": f"{gr*100:.1f} %", "Surface": sv(p["surf"]) if p["surf"] else "asphalt (assumed)", "Lit": YN.get(p["lit"], "unknown")},
+                  "f": {"lv": level, "cf": p["hw"] in ("cycleway", "footway", "path", "pedestrian", "service", "track"), "su": "unknown" if p.get("unk") else surf_cat(p["surf"] or "asphalt")},
+                  "i": {"Length": f"{L:.0f} m", "Drop": f"{abs(dh):.0f} m", "Grade": f"{gr*100:.1f} %", "Surface": sv(p["surf"]) if p["surf"] else ("not mapped, check it" if p.get("unk") else "asphalt (assumed)"), "Lit": YN.get(p["lit"], "unknown")},
                   "osm": f"way/{p['id']}", "sub": level, "prof": [round(x - min(prof), 1) for x in prof]})
 hills.sort(key=lambda h: -h["s"]); kept = []
 for h in hills:

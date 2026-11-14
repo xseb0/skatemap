@@ -8,7 +8,7 @@
 <title>Skate Map</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="style.css?v=22">
+<link rel="stylesheet" href="style.css?v=24">
 </head>
 <body>
 <div id="map"></div>
@@ -40,7 +40,7 @@
 </div>
 
 <div class="pop" id="layers" hidden>
-  <h3>Map</h3>
+  <div class="row pophead"><h3>Map</h3><button class="btn" data-close="layers">Done</button></div>
   <div class="basegrid" id="basegrid"></div>
   <div class="row"><label><input type="checkbox" id="satOn"> Satellite overlay</label></div>
   <input type="range" id="satOp" min="0.1" max="1" step="0.05" value="0.6" aria-label="Satellite overlay opacity">
@@ -52,7 +52,7 @@
 </div>
 
 <div class="pop filters" id="filters" hidden>
-  <div class="row"><h3>Filters</h3><button class="btn" id="fReset">Reset</button></div>
+  <div class="row pophead"><h3>Filters</h3><button class="btn" id="fReset">Reset</button><button class="btn primary" data-close="filters">Done</button></div>
   <div id="fCats" class="fcats"></div>
   <h3>Rating</h3>
   <div class="seg" id="minRate"><button data-v="1">All</button><button data-v="3">3+</button><button data-v="4">4+</button><button data-v="5">5</button></div>
@@ -64,7 +64,7 @@
   <label class="ck"><input type="checkbox" id="rail"> Has a handrail</label>
   <label class="ck"><input type="checkbox" id="pavedEnds"> Paved at both ends (checked in map data)</label>
   <h3>Surface</h3>
-  <p class="small" style="margin:-4px 0 0">Applies to stairs, flat ground, plazas and rinks. Gravel, dirt, cobbles and rough asphalt are always left out.</p>
+  <p class="small" style="margin:-4px 0 0">Applies to stairs, hills, flat ground, plazas and rinks. Gravel, dirt, cobbles and rough asphalt are always left out.</p>
   <div class="tgs" id="surf"></div>
   <h3>Hills</h3>
   <div class="tgs" id="hillLv"></div>
@@ -83,6 +83,6 @@
 <div class="hint" id="hint" hidden><span id="hintText"></span><button id="hintX">Cancel</button></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js?v=22"></script>
+<script src="app.js?v=24"></script>
 </body>
 </html>

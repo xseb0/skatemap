@@ -189,7 +189,7 @@ const G = { n: [], e: [] };
 async function loadRegions() {
   for (const r of REGIONS) {
     try {
-      const d = await (await fetch(`regions/${r}.json?v=2026-11-14e`)).json();
+      const d = await (await fetch(`regions/${r}.json?v=2026-11-14f`)).json();
       addSpots(d.spots);
       for (const q of ["1", "2", "3"]) surfData[q].push(...d.surf[q]);
       const off = G.n.length; G.n.push(...d.graph.n); for (const [a, b, l, q] of d.graph.e) G.e.push([a + off, b + off, l, q]);
@@ -214,7 +214,7 @@ function passes(s) {
   if (s.k === "flat") { if (!F.flatType[s.sub]) return false; if (f.su && !F.surf[f.su]) return false; }
   if (s.k === "plaza") { if (F.bigPlaza && s.sub !== "smoothplaza") return false; if (f.su && !F.surf[f.su]) return false; }
   if (s.k === "rink" && f.su && !F.surf[f.su]) return false;
-  if (s.k === "hill") { if (f.lv && !F.hillLv[f.lv]) return false; if (F.carFree && !f.cf) return false; }
+  if (s.k === "hill") { if (f.lv && !F.hillLv[f.lv]) return false; if (F.carFree && !f.cf) return false; if (f.su && !F.surf[f.su]) return false; }
   if (s.k === "pump" && F.noDirt && f.dirt) return false;
   if (s.k === "route" && F.hub !== "any" && f.hub !== F.hub) return false;
   return true;
@@ -560,6 +560,9 @@ $("bImport").onclick = async () => {
   } catch (e) { $("ioMsg").textContent = "Copy a backup first, then press Paste backup."; }
 };
 
+// Done buttons on the panels, and keep touches on panels from moving the map
+document.querySelectorAll("[data-close]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); $(b.dataset.close).hidden = true; if (b.dataset.close === "layers") $("bLayers").classList.remove("on"); }));
+for (const el of document.querySelectorAll(".top, .fab, .pop, .sheet, .card, .hint")) { L.DomEvent.disableClickPropagation(el); L.DomEvent.disableScrollPropagation(el); }
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (mode) setMode(null); else if (!$("filters").hidden) $("filters").hidden = true; else if (!$("layers").hidden) { $("layers").hidden = true; $("bLayers").classList.remove("on"); } else if (!$("card").hidden) closeCard(); } });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { drawSurf(); render(); });
 
