@@ -41,31 +41,48 @@ if (st.f.stepType === "long") st.f.stepType = "any";
 st.notes = st.notes || {}; st.mine = st.mine || []; st.min = st.min || 1;
 
 // ---------- shareable links: the address holds the view, categories, filters, map style and selection ----------
-// #v=lat,lon,zoom&on=park.steps&min=4&f=<filters>&b=satellite&sat=0.6&sf=1&s=<spot id>&r=<route start,end>
-const b64e = (o) => btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-const b64d = (s) => JSON.parse(decodeURIComponent(escape(atob(s.replace(/-/g, "+").replace(/_/g, "/")))));
+// Short form, only what differs from the defaults, e.g. #m=59.2803,18.1358,18&c=h&h=g&s=soh153273974
+const CAT = { park: "p", pump: "b", rink: "i", steps: "s", longsteps: "l", hill: "h", ledge: "e", rail: "r", plaza: "z", flat: "f", route: "o", mine: "m" };
+const ONDEF = { park: 1, pump: 1, rink: 1, steps: 1, longsteps: 1, hill: 1, ledge: 1, rail: 1, plaza: 1, flat: 0, route: 0, mine: 1 };
+const FLAG = { rail: "r", pavedEnds: "e", hasCount: "c", carFree: "f", bigPlaza: "p", noDirt: "d" };
+const SURF = { asphalt: "a", concrete: "c", "court surface": "k", "paving stones": "p", paved: "v", unknown: "x" };
+const HLV = { gentle: "g", mellow: "m", solid: "s", steep: "t", "very steep": "v" };
+const FLT = { court: "c", parking: "p", schoolyard: "s" };
+const BASEC = { bike: "c", terrain: "t", satellite: "s" };
+const inv = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [v, k]));
 const LINK = {};
 (() => {
   const raw = location.hash.slice(1); if (!raw.includes("=")) return;
   for (const part of raw.split("&")) { const i = part.indexOf("="); if (i > 0) LINK[part.slice(0, i)] = decodeURIComponent(part.slice(i + 1)); }
-  if (LINK.v) { const [la, lo, z] = LINK.v.split(",").map(Number); if (isFinite(la) && isFinite(lo)) st.view = { c: [la, lo], z: isFinite(z) ? z : 15 }; }
-  if (LINK.on !== undefined) { const on = new Set(LINK.on.split(".")); for (const k of Object.keys(st.on)) st.on[k] = on.has(k) ? 1 : 0; }
-  st.min = +LINK.min || 1;
-  let f = {}; try { if (LINK.f) f = b64d(LINK.f); } catch (e) {}
-  st.f = Object.assign(JSON.parse(JSON.stringify(FDEF)), f);
-  for (const g of ["flatType", "surf", "hillLv"]) st.f[g] = Object.assign({}, FDEF[g], f[g]);
-  st.base = LINK.b || "streets"; st.sat = !!LINK.sat; if (LINK.sat) st.satOp = +LINK.sat || 0.6; st.surf = LINK.sf === "1";
+  const view = LINK.m || LINK.v;
+  if (view) { const [la, lo, z] = view.split(",").map(Number); if (isFinite(la) && isFinite(lo)) st.view = { c: [la, lo], z: isFinite(z) ? z : 15 }; }
+  if (LINK.c !== undefined) { const ic = inv(CAT); for (const k of Object.keys(st.on)) st.on[k] = 0; for (const ch of LINK.c) if (ic[ch]) st.on[ic[ch]] = 1; }
+  else if (LINK.on !== undefined) { const on = new Set(LINK.on.split(".")); for (const k of Object.keys(st.on)) st.on[k] = on.has(k) ? 1 : 0; }
+  else Object.assign(st.on, ONDEF);
+  st.min = +(LINK.r || LINK.min) || 1;
+  const F = JSON.parse(JSON.stringify(FDEF));
+  if (LINK.n) { const [a, z] = LINK.n.split("-").map(Number); F.nMin = a || 0; F.nMax = isFinite(z) ? z : 99; }
+  if (LINK.t) F.stepType = LINK.t === "s" ? "short" : LINK.t === "n" ? "stairs" : "any";
+  const iflag = inv(FLAG); for (const ch of LINK.q || "") if (iflag[ch]) F[iflag[ch]] = true;
+  for (const [key, map_, g] of [["u", SURF, "surf"], ["h", HLV, "hillLv"], ["y", FLT, "flatType"]]) { const im = inv(map_); for (const ch of LINK[key] || "") if (im[ch]) F[g][im[ch]] = false; }
+  if (LINK.k) F.hub = LINK.k === "b" ? "Bagarmossen" : LINK.k === "k" ? "Kärrtorp" : "any";
+  st.f = F;
+  st.base = inv(BASEC)[LINK.b] || LINK.b || "streets"; st.sat = !!LINK.o; if (LINK.o) st.satOp = Math.min(1, (+LINK.o || 6) / 10); st.surf = LINK.w === "1";
 })();
 let lastHash = location.hash, hashT;
 function linkHash() {
-  const c = map.getCenter(), parts = [`v=${c.lat.toFixed(5)},${c.lng.toFixed(5)},${map.getZoom()}`, `on=${Object.keys(KINDS).filter((k) => st.on[k]).join(".")}`];
-  if (st.min > 1) parts.push(`min=${st.min}`);
-  const diff = {}; for (const k in FDEF) if (JSON.stringify(st.f[k]) !== JSON.stringify(FDEF[k])) diff[k] = st.f[k];
-  if (Object.keys(diff).length) parts.push(`f=${b64e(diff)}`);
-  if (st.base && st.base !== "streets") parts.push(`b=${st.base}`);
-  if (st.sat) parts.push(`sat=${st.satOp || 0.6}`);
-  if (st.surf) parts.push("sf=1");
-  if (sel && sel.id === "plan" && sel.ends) parts.push(`r=${sel.ends.flat().map((x) => x.toFixed(5)).join(",")}`);
+  const c = map.getCenter(), parts = [`m=${c.lat.toFixed(4)},${c.lng.toFixed(4)},${map.getZoom()}`], F = st.f;
+  if (Object.keys(CAT).some((k) => !!st.on[k] !== !!ONDEF[k])) parts.push(`c=${Object.keys(CAT).filter((k) => st.on[k]).map((k) => CAT[k]).join("")}`);
+  if (st.min > 1) parts.push(`r=${st.min}`);
+  if (F.nMin !== 0 || F.nMax !== 99) parts.push(`n=${F.nMin}-${F.nMax}`);
+  if (F.stepType !== "any") parts.push(`t=${F.stepType === "short" ? "s" : "n"}`);
+  const q = Object.keys(FLAG).filter((k) => F[k]).map((k) => FLAG[k]).join(""); if (q) parts.push(`q=${q}`);
+  for (const [key, map_, g] of [["u", SURF, "surf"], ["h", HLV, "hillLv"], ["y", FLT, "flatType"]]) { const off = Object.keys(map_).filter((k) => !F[g][k]).map((k) => map_[k]).join(""); if (off) parts.push(`${key}=${off}`); }
+  if (F.hub !== "any") parts.push(`k=${F.hub === "Bagarmossen" ? "b" : "k"}`);
+  if (st.base && st.base !== "streets") parts.push(`b=${BASEC[st.base] || st.base}`);
+  if (st.sat) parts.push(`o=${Math.round((st.satOp || 0.6) * 10)}`);
+  if (st.surf) parts.push("w=1");
+  if (sel && sel.id === "plan" && sel.ends) parts.push(`p=${sel.ends.flat().map((x) => x.toFixed(4)).join(",")}`);
   else if (sel && sel.id !== "plan") parts.push(`s=${encodeURIComponent(sel.id)}`);
   return "#" + parts.join("&");
 }
@@ -237,8 +254,8 @@ async function loadRegions() {
   }
   buildGraph();
   if (LINK.s && byId.get(LINK.s)) open(byId.get(LINK.s));
-  else if (LINK.r) { const n = LINK.r.split(",").map(Number); if (n.length === 4) { const A = [n[0], n[1]], B = [n[2], n[3]], r = plan(A, B); if (r) showRoute(r, A, B); } }
-  if (LINK.v) { const [la, lo, z] = LINK.v.split(",").map(Number); map.setView([la, lo], z); }  // keep the shared view, even after opening the spot
+  else if (LINK.p) { const n = LINK.p.split(",").map(Number); if (n.length === 4) { const A = [n[0], n[1]], B = [n[2], n[3]], r = plan(A, B); if (r) showRoute(r, A, B); } }
+  if (LINK.m || LINK.v) { const [la, lo, z] = (LINK.m || LINK.v).split(",").map(Number); map.setView([la, lo], z); }  // keep the shared view, even after opening the spot
 }
 
 // ---------- render markers + list ----------
