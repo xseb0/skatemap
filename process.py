@@ -61,7 +61,7 @@ def surf_cat(s):
     if s in ("asphalt",): return "asphalt"
     if s in ("concrete", "concrete:plates", "concrete:lanes"): return "concrete"
     if s in ("acrylic", "tartan", "rubber"): return "court surface"
-    if s in ("paving_stones", "stone", "granite"): return "paving stones"
+    if s in ("paving_stones", "stone", "granite", "sett"): return "paving stones"
     if s in ("paved",): return "paved"
     return "unknown"
 # which ways meet at each node (for checking what surrounds a stair set)
@@ -121,7 +121,8 @@ for el in spots:
             info, g if el["type"] == "way" else None, {"f": {"indoor": indoor, "dirt": dirt}})
         continue
     if hw == "steps":
-        if bad(t) or t.get("surface") == "metal": continue
+        # granite block steps (sett) are fine to bash; only gravel, dirt, rock, wood etc. are left out
+        if (bad(t) and t.get("surface") != "sett") or t.get("surface") == "metal": continue
         ends = [end_ok(g[0]), end_ok(g[-1])]
         if False in ends: continue  # gravel or dirt at the top or bottom: can't roll in or land
         L = glen(g)
@@ -144,7 +145,7 @@ for el in spots:
         elif tread and tread >= 0.6 and n <= 12:
             sub = "long"; why.insert(0, f"long treads (~{tread*100:.0f} cm per step, from the stair length): likely low, deep steps"); score = 5
         elif tread and tread >= 0.55: why.append(f"~{tread*100:.0f} cm per step by length, probably has landings")
-        if t.get("surface") in ("asphalt", "concrete", "stone", "granite", "paving_stones"): score += 0.3; why.append(sv(t.get("surface")))
+        if t.get("surface") in ("asphalt", "concrete", "stone", "granite", "paving_stones", "sett"): score += 0.3; why.append(sv(t.get("surface")))
         if t.get("surface") in ("wood", "metal", "gravel"): score -= 1; why.append(f"{sv(t.get('surface'))}: harder to land on")
         if t.get("handrail") in ("yes", "both", "left", "right"): why.append("has a handrail (usually too high to grind, check)")
         if t.get("ramp") == "yes": why.append("ramp alongside, easy to get back up")
