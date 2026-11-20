@@ -1,6 +1,6 @@
 (function () {
 "use strict";
-const REGIONS = ["soder", "vallentuna"];
+const REGIONS = ["soder", "vallentuna", "madeira"];
 const KINDS = {
   park:  { l: "Skateparks", one: "Skatepark", c: "--c-park" },
   pump:  { l: "Pump & BMX", one: "Pump track / BMX track", c: "--c-pump" },
@@ -245,7 +245,7 @@ const G = { n: [], e: [] };
 async function loadRegions() {
   for (const r of REGIONS) {
     try {
-      const d = await (await fetch(`regions/${r}.json?v=2026-11-14j`)).json();
+      const d = await (await fetch(`regions/${r}.json?v=2026-11-20a`)).json();
       addSpots(d.spots);
       for (const q of ["1", "2", "3"]) surfData[q].push(...d.surf[q]);
       const off = G.n.length; G.n.push(...d.graph.n); for (const [a, b, l, q] of d.graph.e) G.e.push([a + off, b + off, l, q]);
@@ -528,7 +528,7 @@ async function search() {
   try {
     qAbort?.abort(); qAbort = new AbortController();
     const c = map.getCenter();
-    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=se&accept-language=en&viewbox=${c.lng - .4},${c.lat + .2},${c.lng + .4},${c.lat - .2}&q=${encodeURIComponent(q)}`;
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=se,pt&accept-language=en&viewbox=${c.lng - .4},${c.lat + .2},${c.lng + .4},${c.lat - .2}&q=${encodeURIComponent(q)}`;
     const res = await (await fetch(url, { signal: qAbort.signal })).json();
     html += `<div class="head">Places</div>` + (res.length ? res.map((r) => `<button data-lat="${r.lat}" data-lon="${r.lon}" data-bb="${(r.boundingbox || []).join(",")}"><span class="dot" style="--c:var(--muted)"></span><span>${esc(r.name || r.display_name.split(",")[0])}<small>${esc(r.display_name.split(",").slice(1, 4).join(","))}</small></span></button>`).join("") : `<div class="empty">No places found</div>`);
     $("results").innerHTML = html;

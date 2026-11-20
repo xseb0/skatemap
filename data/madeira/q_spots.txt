@@ -1,0 +1,8 @@
+[out:json][timeout:60];
+(
+  nwr["sport"~"skateboard|bmx|roller_skating"](32.6,-17.3,32.9,-16.6);
+  nwr["leisure"="track"]["sport"~"bmx|cycling|skateboard"](32.6,-17.3,32.9,-16.6);
+  nwr["name"~"[Pp]ump"](32.6,-17.3,32.9,-16.6);
+  nwr["name"~"[Ss]kate"](32.6,-17.3,32.9,-16.6);
+);
+out center tags;
