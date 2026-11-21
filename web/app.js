@@ -393,10 +393,14 @@ function open(s, fly) {
   }
   const n = st.notes[s.id] || {};
   const [la, lo] = s.p;
-  $("card").innerHTML = `<button class="x" aria-label="Close">×</button>
-    <div class="sv"><div class="svmsg">Loading Street View…<br>If it stays empty there is no Street View here.</div><iframe id="svFrame" src="${svUrl(s, true)}" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" title="Street View"></iframe>
-      <button class="svbtn svbig" id="svBig" aria-label="Open Street View large" title="Open large"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button>
-      ${s.g && s.g.length > 1 && s.k !== "steps" ? `<button class="svbtn svprev" id="svPrev" aria-label="Move Street View back along the line" title="Back 100 m">‹</button><button class="svbtn svnext" id="svNext" aria-label="Move Street View forward along the line" title="Forward 100 m">›</button>` : ""}</div>
+  $("card").innerHTML = `<div class="sv"><div class="svmsg">Loading Street View…<br>If it stays empty there is no Street View here.</div><iframe id="svFrame" src="${svUrl(s, true)}" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" title="Street View"></iframe>
+</div>
+    <div class="svbar">
+      ${s.g && s.g.length > 1 && s.k !== "steps" ? `<button class="sbtn" id="svPrev" aria-label="Move Street View back 100 metres along the line">‹ 100 m</button><button class="sbtn" id="svNext" aria-label="Move Street View forward 100 metres along the line">100 m ›</button>` : ""}
+      <span class="grow"></span>
+      <button class="sbtn" id="svBig" aria-label="Open Street View large"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>Large</button>
+      <button class="sbtn x" aria-label="Close card">×</button>
+    </div>
     <div class="body">
       <div><div class="kind" style="--c:${col}">${glyph(kOf(s))}${esc(SUBL[s.sub] || KINDS[s.k].one)}</div><h2>${esc(s.n)}</h2>
         <div class="stars" style="margin-top:4px">${stars(s.s)} <span class="small">${s.k === "mine" ? "your spot" : /by hand/.test(s.i?.Source || "") ? "rated by hand" : "estimated from map data"}</span></div></div>
@@ -457,6 +461,8 @@ function svSet(p, h) {
   const f = $("svFrame"); if (f) f.src = base + "&output=svembed";
   const a = $("svLink"); if (a) a.href = base;
   if (sv) { sv.p = p; sv.h = h; }
+  const lf = $("lbStage").querySelector("iframe"); if (lf && !$("lb").hidden && f) lf.src = f.src;
+  miniCam();
   svLayer.clearLayers();
   L.marker(p, { icon: L.divIcon({ className: "", iconSize: [34, 34], html: `<div class="svcam" style="transform:rotate(${h.toFixed(0)}deg)"><i></i></div>` }), interactive: false, zIndexOffset: 3000 }).addTo(svLayer);
 }
@@ -472,20 +478,19 @@ function svInit(s) {
 }
 function svStep(k) {
   if (!sv) return; sv.d = Math.max(0, Math.min(sv.cum[sv.cum.length - 1], sv.d + k)); const a = atDist(sv.g, sv.cum, sv.d); svSet(a.p, a.h);
-  const f = $("lbStage").querySelector("iframe"); if (f && !$("lb").hidden) f.src = $("svFrame").src;
 }
 // tap near the selected line (within ~36 px) -> move Street View to the nearest point on it, facing along the line
-function svAlong(ll) {
+function svAlong(ll, m = map, tol = 36) {
   if (!sv || !sel || sv.s !== sel || $("card").hidden) return false;
-  const P = map.latLngToContainerPoint(ll); let best = 1e9, bi = 0, bt = 0;
+  const P = m.latLngToContainerPoint(ll); let best = 1e9, bi = 0, bt = 0;
   for (let i = 1; i < sv.g.length; i++) {
-    const A = map.latLngToContainerPoint(sv.g[i - 1]), B = map.latLngToContainerPoint(sv.g[i]);
+    const A = m.latLngToContainerPoint(sv.g[i - 1]), B = m.latLngToContainerPoint(sv.g[i]);
     const dx = B.x - A.x, dy = B.y - A.y, L2 = dx * dx + dy * dy;
     const t = L2 ? Math.max(0, Math.min(1, ((P.x - A.x) * dx + (P.y - A.y) * dy) / L2)) : 0;
     const d = Math.hypot(A.x + dx * t - P.x, A.y + dy * t - P.y);
     if (d < best) { best = d; bi = i; bt = t; }
   }
-  if (best > 36) return false;
+  if (best > tol) return false;
   sv.d = sv.cum[bi - 1] + (sv.cum[bi] - sv.cum[bi - 1]) * bt;
   const a = atDist(sv.g, sv.cum, sv.d); svSet(a.p, a.h);
   if (innerWidth <= 760) $("card").scrollTop = 0;
@@ -521,13 +526,37 @@ function loadPhotos(s) {
   });
 }
 
+// minimap in the Street View lightbox: the line, the camera, tap the line to move there
+let mini = null, miniM = null;
+const camIcon = (h) => L.divIcon({ className: "", iconSize: [34, 34], html: `<div class="svcam" style="transform:rotate(${h.toFixed(0)}deg)"><i></i></div>` });
+function miniCam() {
+  if (!mini || $("lbMini").hidden || !sv || !sv.p) return;
+  if (miniM) miniM.setLatLng(sv.p).setIcon(camIcon(sv.h)); else miniM = L.marker(sv.p, { icon: camIcon(sv.h), interactive: false }).addTo(mini);
+  if (!mini.getBounds().pad(-0.1).contains(sv.p)) mini.panTo(sv.p);
+}
+function miniShow(on) {
+  const el = $("lbMini"); el.hidden = !on; if (!on) return;
+  if (!mini) {
+    mini = L.map(el, { zoomControl: false, attributionControl: false, zoomSnap: 0.25 });
+    mini.on("click", (e) => svAlong(e.latlng, mini, 40));
+  }
+  mini.eachLayer((l) => mini.removeLayer(l)); miniM = null;
+  (BASES[st.base] || BASES.streets).layer().addTo(mini);
+  const col = colorOf(sv.s);
+  L.polyline(sv.g, { color: css("--panel"), weight: 9, opacity: .95, interactive: false }).addTo(mini);
+  L.polyline(sv.g, { color: col, weight: 5, interactive: false }).addTo(mini);
+  if (me) L.marker(me, { icon: L.divIcon({ className: "", html: '<div class="me-dot"></div>', iconSize: [18, 18] }), interactive: false }).addTo(mini);
+  mini.invalidateSize(); mini.fitBounds(L.latLngBounds(sv.g), { padding: [16, 16], maxZoom: 17 });
+  miniCam();
+}
 let lbItems = [], lbN = 0;
 function lbShow(n) {
   lbN = (n + lbItems.length) % lbItems.length; const i = lbItems[lbN];
   const multi = lbItems.length > 1; $("lbPrev").hidden = $("lbNext").hidden = !(multi || i.sv && sv);
+  miniShow(!!(i.sv && sv));
   if (i.sv) {
     $("lbStage").innerHTML = `<iframe src="${i.sv}" allowfullscreen referrerpolicy="no-referrer-when-downgrade" title="Street View"></iframe>`;
-    $("lbCap").innerHTML = `Street View · ${esc(i.t)}${sv ? " <span>‹ › moves 100 m along the line</span>" : ""}`;
+    $("lbCap").innerHTML = `Street View · ${esc(i.t)}${sv ? " <span>‹ › moves 100 m · tap the line on the small map to jump</span>" : ""}`;
     return;
   }
   $("lbStage").innerHTML = `<img id="lbImg" src="${esc(i.src)}" alt="${esc(i.t)}">`;
@@ -535,7 +564,7 @@ function lbShow(n) {
   $("lbCap").innerHTML = `${esc(i.t)} ${multi ? `<span>${lbN + 1} / ${lbItems.length}</span>` : ""} <a href="${esc(i.page)}" target="_blank" rel="noopener">Wikimedia Commons: photographer and licence</a>`;
 }
 function lbOpen(items, n) { lbItems = items; $("lb").hidden = false; lbShow(n); $("lbClose").focus(); }
-function lbClose() { $("lb").hidden = true; $("lbStage").innerHTML = ""; }
+function lbClose() { $("lb").hidden = true; $("lbStage").innerHTML = ""; $("lbMini").hidden = true; }
 $("lbClose").onclick = lbClose; const lbGo = (k) => (lbItems[lbN]?.sv ? svStep(k * 100) : lbShow(lbN + k));
 $("lbPrev").onclick = () => lbGo(-1); $("lbNext").onclick = () => lbGo(1);
 $("lb").onclick = (e) => { if (e.target.id === "lb" || e.target.id === "lbStage") lbClose(); };
