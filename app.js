@@ -16,6 +16,24 @@ const KINDS = {
   shop:  { l: "Shops", one: "Shop: skate parts", c: "--c-shop" },
   mine:  { l: "My spots", one: "My spot", c: "--c-mine" },
 };
+// small glyphs (24x24, strokes) for pins, chips, list and card
+const ICON = {
+  park: '<path d="M2 6h2c0 7 3.5 11 8 11s8-4 8-11h2"/><path d="M4 21h16"/>',
+  pump: '<path d="M2 16c2.5 0 2.5-6 5-6s2.5 6 5 6 2.5-6 5-6 2.5 6 5 6"/><path d="M2 20h20"/>',
+  rink: '<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9.5 4.5L12 7l2.5-2.5M9.5 19.5L12 17l2.5 2.5"/>',
+  steps: '<path d="M3 20h5v-5h5v-5h5V5h3"/>',
+  longsteps: '<path d="M2 19h8v-4.5h8V10h4"/>',
+  hill: '<path d="M3 19L21 7v12z"/>',
+  ledge: '<path d="M4 17V10h16v7"/><path d="M2 17h20"/>',
+  rail: '<path d="M3 8h18M6 8v12M18 8v12"/>',
+  plaza: '<rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M4 12h16M12 4v16"/>',
+  flat: '<rect x="3" y="6" width="18" height="12" rx="1"/><path d="M12 6v12"/><circle cx="12" cy="12" r="2.5"/>',
+  route: '<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h5a3 3 0 000-6h-2a3 3 0 010-6h5"/>',
+  shop: '<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 016 0v2"/>',
+  mine: '<path d="M12 21s-7-6.5-7-12a7 7 0 0114 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+};
+const glyph = (k) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICON[k] || ""}</svg>`;
+const kOf = (s) => s.sub === "long" ? "longsteps" : s.k;
 const SUBC = { long: "--c-long", short: "--c-short" };
 const SUBL = { smoothplaza: "Big smooth plaza", long: "Stairs with long, low steps", short: "Short stairs: jump practice", stairs: "Stairs", parking: "Large car park", court: "Court",
   schoolyard: "Schoolyard", plan: "Planned route", mellow: "Mellow hill", solid: "Solid hill", steep: "Steep hill", "very steep": "Very steep hill", bench: "Bench", curb: "Curb" };
@@ -159,7 +177,7 @@ function drawChips() {
   const nf = activeFilters();
   $("chips").innerHTML = `<span class="chip filt ${nf ? "act" : ""}"><button data-filters><svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2.2"><path d="M3 5h18M6 12h12M10 19h4"/></svg>Filters${nf ? ` <span class="n">${nf}</span>` : ""}</button></span><span class="chip all ${allOn ? "" : "off"}"><button data-all>All</button></span>` +
     Object.entries(KINDS).filter(([k]) => c[k] || st.on[k] && near[k] || k === "mine").map(([k, v]) =>
-      `<span class="chip ${st.on[k] ? "" : "off"}" style="--c:var(${v.c})"><button class="tog" data-k="${k}" aria-pressed="${!!st.on[k]}" title="Show or hide ${v.l.toLowerCase()}"><span class="dot"></span>${v.l}<span class="n">${c[k] || 0}</span></button><button class="only" data-only="${k}" title="Show only ${v.l.toLowerCase()}">only</button></span>`).join("");
+      `<span class="chip ${st.on[k] ? "" : "off"}" style="--c:var(${v.c})"><button class="tog" data-k="${k}" aria-pressed="${!!st.on[k]}" title="Show or hide ${v.l.toLowerCase()}"><span class="dot">${glyph(k)}</span>${v.l}<span class="n">${c[k] || 0}</span></button><button class="only" data-only="${k}" title="Show only ${v.l.toLowerCase()}">only</button></span>`).join("");
 }
 $("chips").onclick = (e) => {
   const b = e.target.closest("button"); if (!b) return;
@@ -187,7 +205,7 @@ const LABELS = { surf: { asphalt: "Asphalt", concrete: "Concrete", "court surfac
 function drawFilters() {
   const F = st.f, c = {}; for (const s of spots) c[s.k] = (c[s.k] || 0) + 1;
   $("fCats").innerHTML = Object.entries(KINDS).filter(([k]) => c[k] || st.on[k] && near[k] || k === "mine").map(([k, v]) =>
-    `<div class="fcat" style="--c:var(${v.c})"><label><input type="checkbox" data-cat="${k}" ${st.on[k] ? "checked" : ""}><span class="dot"></span>${v.l}<span class="n">${c[k] || 0}</span></label><button class="only" data-only="${k}">only</button></div>`).join("");
+    `<div class="fcat" style="--c:var(${v.c})"><label><input type="checkbox" data-cat="${k}" ${st.on[k] ? "checked" : ""}><span class="dot">${glyph(k)}</span>${v.l}<span class="n">${c[k] || 0}</span></label><button class="only" data-only="${k}">only</button></div>`).join("");
   $("nMin").value = F.nMin; $("nMax").value = F.nMax;
   for (const id of ["hasCount", "rail", "pavedEnds", "carFree", "bigPlaza", "noDirt"]) $(id).checked = !!F[id];
   for (const g of ["surf", "hillLv", "flatType"]) $(g).innerHTML = Object.entries(LABELS[g]).map(([k, l]) => `<button data-g="${g}" data-k="${k}" class="${F[g][k] ? "on" : ""}">${l}</button>`).join("");
@@ -248,7 +266,7 @@ const G = { n: [], e: [] };
 async function loadRegions() {
   for (const r of REGIONS) {
     try {
-      const d = await (await fetch(`regions/${r}.json?v=2026-11-21d`)).json();
+      const d = await (await fetch(`regions/${r}.json?v=2026-11-21e`)).json();
       addSpots(d.spots);
       for (const q of ["1", "2", "3"]) surfData[q].push(...d.surf[q]);
       const off = G.n.length; G.n.push(...d.graph.n); for (const [a, b, l, q] of d.graph.e) G.e.push([a + off, b + off, l, q]);
@@ -288,12 +306,21 @@ function render() {
   const vs = visible(), z = map.getZoom();
   const rad = z >= 17 ? 9 : z >= 15 ? 7 : z >= 14 ? 5 : z >= 13 ? 4 : 3;
   const ink = css("--panel");
+  // icon pins when few enough spots are in view (Söder has thousands; those stay canvas dots when zoomed out)
+  const bb = map.getBounds().pad(0.3), nView = vs.reduce((n, s) => n + (bb.contains(s.p) ? 1 : 0), 0);
+  const icons = nView <= 120 || z >= 14 && nView <= 350;
   for (const s of vs) {
     const col = colorOf(s);
     const focus = sel && (sel.k === "route" || sel.k === "hill") && sel.id !== s.id;
     if ((s.k === "route" || s.k === "hill") && s.g && z >= 13) L.polyline(s.g, { renderer: R, color: col, weight: s.k === "route" ? 4 : 5, opacity: focus ? 0.12 : s.k === "route" ? .55 : .8, dashArray: s.warn ? "9 7" : null }).on("click", (e) => pick(s, e)).addTo(lineLayer);
     if (s.k === "hill" && s.g && z >= 15 && !focus) arrows(s.g, col, z, lineLayer, R);
     if (s.k === "mine") L.marker(s.p, { icon: L.divIcon({ className: "", html: `<div class="mine-pin"></div>`, iconSize: [16, 16] }), title: s.n }).on("click", (e) => pick(s, e)).addTo(spotLayer);
+    else if (icons) {
+      if (!bb.contains(s.p)) continue;
+      const d = (z >= 17 ? 28 : z >= 16 ? 24 : z >= 15 ? 21 : 18) + (s.s >= 5 ? 4 : 0);
+      L.marker(s.p, { icon: L.divIcon({ className: "", iconSize: [d, d], html: `<div class="kpin" style="--c:${col};width:${d}px;height:${d}px">${glyph(kOf(s))}</div>` }),
+        zIndexOffset: s.s * 100, title: s.n, keyboard: false }).on("click", (e) => pick(s, e)).addTo(spotLayer);
+    }
     else L.circleMarker(s.p, { renderer: R, radius: s.s >= 5 ? rad + 1.5 : rad, color: ink, weight: z >= 14 ? 2 : 1, fillColor: col, fillOpacity: 1 }).on("click", (e) => pick(s, e)).addTo(spotLayer);
   }
   drawList(vs);
@@ -327,7 +354,7 @@ function drawList(vs) {
   if (!inView.length) { $("list").innerHTML = `<div class="empty">No spots here with these filters. Turn on more categories, zoom out, or tap the search button on the right to find spots in this area.</div>`; return; }
   $("list").innerHTML = inView.slice(0, 120).map((s) => {
     const n = st.notes[s.id];
-    return `<button class="item ${sel && sel.id === s.id ? "sel" : ""}" data-id="${esc(s.id)}" style="--c:${colorOf(s)}"><span class="dot"></span><span style="min-width:0"><div class="t">${esc(s.n)}${n && n.status ? `<span class="tag ${n.status}">${esc(NOTE[n.status])}</span>` : ""}</div><div class="w">${esc(s.w)}</div></span><span class="meta">${fmtD(s._d)}<br><span class="stars">${stars(s.s)}</span></span></button>`;
+    return `<button class="item ${sel && sel.id === s.id ? "sel" : ""}" data-id="${esc(s.id)}" style="--c:${colorOf(s)}"><span class="dot">${glyph(kOf(s))}</span><span style="min-width:0"><div class="t">${esc(s.n)}${n && n.status ? `<span class="tag ${n.status}">${esc(NOTE[n.status])}</span>` : ""}</div><div class="w">${esc(s.w)}</div></span><span class="meta">${fmtD(s._d)}<br><span class="stars">${stars(s.s)}</span></span></button>`;
   }).join("") + (inView.length > 120 ? `<div class="empty">Showing the 120 closest of ${inView.length}.</div>` : "");
 }
 $("list").onclick = (e) => { const b = e.target.closest(".item"); if (b) open(byId.get(b.dataset.id), true); };
@@ -367,16 +394,20 @@ function open(s, fly) {
   const n = st.notes[s.id] || {};
   const [la, lo] = s.p;
   $("card").innerHTML = `<button class="x" aria-label="Close">×</button>
-    <div class="sv"><div class="svmsg">Loading Street View…<br>If it stays empty there is no Street View here.</div><iframe src="${svUrl(s, true)}" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" title="Street View"></iframe></div>
+    <div class="sv"><div class="svmsg">Loading Street View…<br>If it stays empty there is no Street View here.</div><iframe id="svFrame" src="${svUrl(s, true)}" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" title="Street View"></iframe>
+      <button class="svbtn svbig" id="svBig" aria-label="Open Street View large" title="Open large"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button>
+      ${s.g && s.g.length > 1 && s.k !== "steps" ? `<button class="svbtn svprev" id="svPrev" aria-label="Move Street View back along the line" title="Back 100 m">‹</button><button class="svbtn svnext" id="svNext" aria-label="Move Street View forward along the line" title="Forward 100 m">›</button>` : ""}</div>
     <div class="body">
-      <div><div class="kind" style="--c:${col}">${esc(SUBL[s.sub] || KINDS[s.k].one)}</div><h2>${esc(s.n)}</h2>
+      <div><div class="kind" style="--c:${col}">${glyph(kOf(s))}${esc(SUBL[s.sub] || KINDS[s.k].one)}</div><h2>${esc(s.n)}</h2>
         <div class="stars" style="margin-top:4px">${stars(s.s)} <span class="small">${s.k === "mine" ? "your spot" : /by hand/.test(s.i?.Source || "") ? "rated by hand" : "estimated from map data"}</span></div></div>
       ${s.warn ? `<div class="warn">⚠ ${esc(s.warn)}</div>` : ""}<div class="why">${esc(s.w)}</div>
+      ${s.g && s.g.length > 1 && s.k !== "steps" ? `<div class="small svtip">Tap anywhere on the line to move Street View there, or use ‹ › for 100 m steps.</div>` : ""}
       ${s.prof ? profSVG(s.prof, col) : ""}
+      <div class="photos" id="photos" hidden></div>
       ${s.i ? `<dl>${Object.entries(s.i).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>` : ""}
       <div class="links">
         <button class="btn primary" id="cShare">Share link</button>
-        <a href="${svUrl(s)}" target="_blank" rel="noopener">Open Street View</a>
+        <a href="${svUrl(s)}" id="svLink" target="_blank" rel="noopener">Open Street View</a>
         <a href="https://www.google.com/maps/dir/?api=1&destination=${la},${lo}&travelmode=walking" target="_blank" rel="noopener">Directions</a>
         <a href="${s.gm ? esc(s.gm) : `https://www.google.com/maps/search/?api=1&query=${la},${lo}`}" target="_blank" rel="noopener">Google Maps</a>
         ${s.web ? `<a href="${esc(s.web)}" target="_blank" rel="noopener">Website</a>` : ""}
@@ -394,6 +425,7 @@ function open(s, fly) {
   $("card").hidden = false; $("card").scrollTop = 0; document.body.classList.add("card-open");
   if (s.k === "route" || s.k === "hill") render();
   $("card").querySelector(".x").onclick = closeCard;
+  svInit(s); loadPhotos(s);
   $("cShare").onclick = async () => { const m = await shareLink(s.n); if (m) hint(m, 2000); };
   syncHash();
   $("card").querySelectorAll("[data-st]").forEach((b) => (b.onclick = () => { const v = b.dataset.st; setNote(s, { status: n.status === v ? null : v }); }));
@@ -407,7 +439,111 @@ function setNote(s, patch) {
   const keepText = $("nText") ? $("nText").value : null;
   open(s); if (keepText !== null && $("nText")) $("nText").value = keepText; drawList();
 }
-function closeCard() { setTimeout(syncHash); const was = sel; if (was && was.id === "plan") routeLayer.clearLayers(); document.body.classList.remove("card-open"); $("card").hidden = true; $("card").innerHTML = ""; hiLayer.clearLayers(); sel = null; if (was && (was.k === "route" || was.k === "hill")) render(); else drawList(); }
+function closeCard() { setTimeout(syncHash); const was = sel; if (was && was.id === "plan") routeLayer.clearLayers(); document.body.classList.remove("card-open"); $("card").hidden = true; $("card").innerHTML = ""; hiLayer.clearLayers(); svLayer.clearLayers(); sel = null; if (was && (was.k === "route" || was.k === "hill")) render(); else drawList(); }
+
+// ---------- Street View along a line, photos, lightbox ----------
+const svLayer = L.layerGroup().addTo(map);
+let sv = null;  // { s, d (metres along the line), p, h }
+const mDist = (a, b) => L.latLng(a).distanceTo(L.latLng(b));
+function lineCum(g) { const c = [0]; for (let i = 1; i < g.length; i++) c.push(c[i - 1] + mDist(g[i - 1], g[i])); return c; }
+function atDist(g, cum, d) {
+  d = Math.max(0, Math.min(cum[cum.length - 1], d));
+  let i = 1; while (i < g.length - 1 && cum[i] < d) i++;
+  const t = cum[i] > cum[i - 1] ? (d - cum[i - 1]) / (cum[i] - cum[i - 1]) : 0;
+  return { p: [g[i - 1][0] + (g[i][0] - g[i - 1][0]) * t, g[i - 1][1] + (g[i][1] - g[i - 1][1]) * t], h: bearing(g[i - 1], g[i]) };
+}
+function svSet(p, h) {
+  const base = `https://www.google.com/maps?layer=c&cbll=${p[0].toFixed(6)},${p[1].toFixed(6)}&cbp=12,${h.toFixed(0)},0,0,5`;
+  const f = $("svFrame"); if (f) f.src = base + "&output=svembed";
+  const a = $("svLink"); if (a) a.href = base;
+  if (sv) { sv.p = p; sv.h = h; }
+  svLayer.clearLayers();
+  L.marker(p, { icon: L.divIcon({ className: "", iconSize: [34, 34], html: `<div class="svcam" style="transform:rotate(${h.toFixed(0)}deg)"><i></i></div>` }), interactive: false, zIndexOffset: 3000 }).addTo(svLayer);
+}
+function svInit(s) {
+  svLayer.clearLayers(); sv = null;
+  const g = s.g && s.g.length > 1 && s.k !== "steps" ? s.g : null;
+  $("svBig").onclick = () => lbOpen([{ sv: $("svFrame").src, t: s.n }], 0);
+  if (!g) return;
+  sv = { s, g, cum: lineCum(g), d: 0 };
+  $("svPrev").onclick = () => svStep(-100); $("svNext").onclick = () => svStep(100);
+  const a = atDist(g, sv.cum, 0); sv.p = a.p; sv.h = a.h;
+  L.marker(a.p, { icon: L.divIcon({ className: "", iconSize: [34, 34], html: `<div class="svcam" style="transform:rotate(${a.h.toFixed(0)}deg)"><i></i></div>` }), interactive: false, zIndexOffset: 3000 }).addTo(svLayer);
+}
+function svStep(k) {
+  if (!sv) return; sv.d = Math.max(0, Math.min(sv.cum[sv.cum.length - 1], sv.d + k)); const a = atDist(sv.g, sv.cum, sv.d); svSet(a.p, a.h);
+  const f = $("lbStage").querySelector("iframe"); if (f && !$("lb").hidden) f.src = $("svFrame").src;
+}
+// tap near the selected line (within ~36 px) -> move Street View to the nearest point on it, facing along the line
+function svAlong(ll) {
+  if (!sv || !sel || sv.s !== sel || $("card").hidden) return false;
+  const P = map.latLngToContainerPoint(ll); let best = 1e9, bi = 0, bt = 0;
+  for (let i = 1; i < sv.g.length; i++) {
+    const A = map.latLngToContainerPoint(sv.g[i - 1]), B = map.latLngToContainerPoint(sv.g[i]);
+    const dx = B.x - A.x, dy = B.y - A.y, L2 = dx * dx + dy * dy;
+    const t = L2 ? Math.max(0, Math.min(1, ((P.x - A.x) * dx + (P.y - A.y) * dy) / L2)) : 0;
+    const d = Math.hypot(A.x + dx * t - P.x, A.y + dy * t - P.y);
+    if (d < best) { best = d; bi = i; bt = t; }
+  }
+  if (best > 36) return false;
+  sv.d = sv.cum[bi - 1] + (sv.cum[bi] - sv.cum[bi - 1]) * bt;
+  const a = atDist(sv.g, sv.cum, sv.d); svSet(a.p, a.h);
+  if (innerWidth <= 760) $("card").scrollTop = 0;
+  return true;
+}
+
+// photos near the spot: geotagged pictures from Wikimedia Commons (no key needed)
+const photoCache = {};
+function loadPhotos(s) {
+  const pts = s.g && s.g.length > 1 ? [0, 0.33, 0.66, 1].map((f) => s.g[Math.round(f * (s.g.length - 1))]) : [s.p];
+  const r = s.g && s.g.length > 1 ? 250 : 150;
+  photoCache[s.id] ||= Promise.all(pts.map(async ([la, lo]) => {
+    const q = new URLSearchParams({ action: "query", generator: "geosearch", ggscoord: `${la}|${lo}`, ggsradius: String(r), ggslimit: "20", ggsnamespace: "6",
+      prop: "imageinfo", iiprop: "url|size", iiurlheight: "300", format: "json", origin: "*" });
+    try { return Object.values((await (await fetch("https://commons.wikimedia.org/w/api.php?" + q)).json()).query?.pages || {}).sort((a, b) => a.index - b.index); }
+    catch { return []; }
+  })).then((res) => {
+    const seen = new Set(), out = [];
+    for (const pg of res.flat()) {
+      const ii = pg.imageinfo?.[0]; if (!ii || seen.has(pg.pageid) || !/\.(jpe?g)$/i.test(pg.title) || ii.width < 640) continue;
+      seen.add(pg.pageid);
+      out.push({ src: ii.thumburl, big: ii.width > 1800 ? ii.thumburl.replace(/\/\d+px-/, "/1800px-") : ii.url, page: ii.descriptionurl, t: pg.title.replace(/^File:|\.\w+$/g, "") });
+    }
+    return out.slice(0, 12);
+  });
+  photoCache[s.id].then((imgs) => {
+    const el = $("photos"); if (!el || sel !== s) return;
+    el.hidden = false;
+    el.innerHTML = `<div class="small">Photos nearby <span class="muted">· Wikimedia Commons</span></div>` + (imgs.length
+      ? `<div class="strip">${imgs.map((i, n) => `<a href="${esc(i.page)}" data-n="${n}" title="${esc(i.t)}"><img src="${esc(i.src)}" alt="${esc(i.t)}" loading="lazy"></a>`).join("")}</div>`
+      : `<div class="small muted">No photos found here. Street View above shows the surface.</div>`);
+    el.onclick = (e) => { const a = e.target.closest("a[data-n]"); if (!a) return; e.preventDefault(); lbOpen(imgs, +a.dataset.n); };
+  });
+}
+
+let lbItems = [], lbN = 0;
+function lbShow(n) {
+  lbN = (n + lbItems.length) % lbItems.length; const i = lbItems[lbN];
+  const multi = lbItems.length > 1; $("lbPrev").hidden = $("lbNext").hidden = !(multi || i.sv && sv);
+  if (i.sv) {
+    $("lbStage").innerHTML = `<iframe src="${i.sv}" allowfullscreen referrerpolicy="no-referrer-when-downgrade" title="Street View"></iframe>`;
+    $("lbCap").innerHTML = `Street View · ${esc(i.t)}${sv ? " <span>‹ › moves 100 m along the line</span>" : ""}`;
+    return;
+  }
+  $("lbStage").innerHTML = `<img id="lbImg" src="${esc(i.src)}" alt="${esc(i.t)}">`;
+  const pre = new Image(); pre.onload = () => { if (lbItems[lbN] === i && $("lbImg")) $("lbImg").src = i.big; }; pre.src = i.big;
+  $("lbCap").innerHTML = `${esc(i.t)} ${multi ? `<span>${lbN + 1} / ${lbItems.length}</span>` : ""} <a href="${esc(i.page)}" target="_blank" rel="noopener">Wikimedia Commons: photographer and licence</a>`;
+}
+function lbOpen(items, n) { lbItems = items; $("lb").hidden = false; lbShow(n); $("lbClose").focus(); }
+function lbClose() { $("lb").hidden = true; $("lbStage").innerHTML = ""; }
+$("lbClose").onclick = lbClose; const lbGo = (k) => (lbItems[lbN]?.sv ? svStep(k * 100) : lbShow(lbN + k));
+$("lbPrev").onclick = () => lbGo(-1); $("lbNext").onclick = () => lbGo(1);
+$("lb").onclick = (e) => { if (e.target.id === "lb" || e.target.id === "lbStage") lbClose(); };
+addEventListener("keydown", (e) => { if ($("lb").hidden) return;
+  if (e.key === "Escape") { e.stopPropagation(); lbClose(); } else if (e.key === "ArrowRight" && !$("lbNext").hidden) lbGo(1); else if (e.key === "ArrowLeft" && !$("lbPrev").hidden) lbGo(-1); }, true);
+let lbX = null;
+$("lb").addEventListener("touchstart", (e) => (lbX = e.touches[0].clientX), { passive: true });
+$("lb").addEventListener("touchend", (e) => { if (lbX == null || lbItems.length < 2 || lbItems[lbN].sv) return; const dx = e.changedTouches[0].clientX - lbX; lbX = null; if (Math.abs(dx) > 50) lbShow(lbN + (dx < 0 ? 1 : -1)); });
 
 // ---------- my location ----------
 let watchId = null, meDot = null, meAcc = null, follow = false;
@@ -440,7 +576,7 @@ $("bRoute").onclick = () => { routeA = null; routeLayer.clearLayers(); setMode(m
 map.on("click", (e) => tap([e.latlng.lat, e.latlng.lng]));
 function tap(ll) {
   const p = [+ll[0].toFixed(6), +ll[1].toFixed(6)];
-  if (!mode && !$("card").hidden) { closeCard(); return; }  // tapping empty map deselects
+  if (!mode && !$("card").hidden) { if (!svAlong(L.latLng(ll))) closeCard(); return; }  // tapping empty map deselects
   if (mode === "add") { setMode(null); addForm(p); return; }
   if (mode === "route") {
     if (!routeA) { routeA = p; routeLayer.clearLayers(); L.circleMarker(p, { radius: 8, color: css("--c-route"), fillOpacity: 1 }).addTo(routeLayer); hint("Now tap the destination"); return; }
@@ -449,7 +585,7 @@ function tap(ll) {
     showRoute(r, A, p);
   }
 }
-function pick(s, e) { L.DomEvent.stop(e); if (mode) tap([e.latlng.lat, e.latlng.lng]); else if (sel && sel.id === s.id) closeCard(); else open(s); }
+function pick(s, e) { L.DomEvent.stop(e); if (mode) tap([e.latlng.lat, e.latlng.lng]); else if (s === sel && svAlong(e.latlng)) return; else if (sel && sel.id === s.id) closeCard(); else open(s); }
 function addForm(p) {
   sel = null; hiLayer.clearLayers(); L.circleMarker(p, { radius: 9, color: css("--accent"), fillOpacity: .6 }).addTo(hiLayer);
   $("card").innerHTML = `<button class="x" aria-label="Close" style="background:var(--hover);color:var(--ink)">×</button><div class="body" style="padding-top:18px">
@@ -527,7 +663,7 @@ async function search() {
   if (q.length < 2) { $("results").hidden = true; return; }
   const ql = q.toLowerCase();
   const sp = spots.filter((s) => s.n.toLowerCase().includes(ql) || (KINDS[s.k].l.toLowerCase().includes(ql))).slice(0, 6);
-  let html = sp.length ? `<div class="head">Spots</div>` + sp.map((s) => `<button data-id="${esc(s.id)}"><span class="dot" style="--c:${colorOf(s)}"></span><span>${esc(s.n)}<small>${esc(SUBL[s.sub] || KINDS[s.k].one)}</small></span></button>`).join("") : "";
+  let html = sp.length ? `<div class="head">Spots</div>` + sp.map((s) => `<button data-id="${esc(s.id)}"><span class="dot" style="--c:${colorOf(s)}">${glyph(kOf(s))}</span><span>${esc(s.n)}<small>${esc(SUBL[s.sub] || KINDS[s.k].one)}</small></span></button>`).join("") : "";
   $("results").innerHTML = html + `<div class="head">Places</div><div class="empty">Searching…</div>`; $("results").hidden = false;
   try {
     qAbort?.abort(); qAbort = new AbortController();
