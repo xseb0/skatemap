@@ -135,32 +135,34 @@ spots += [
      "i": {"Surface": "concrete, asphalt", "Crowds": "quiet", "Source": SRC}, "f": {"su": "concrete", "area": 1}},
 ]
 
-# ---------- shops for inline parts ----------
+# ---------- shops for inline parts (Google ratings read on Google Maps, 21 Nov 2026) ----------
+GM = "https://www.google.com/maps/search/?api=1&query="
 SHOPS = [
-    ("mad-shop-decathlon", "Decathlon Funchal", [32.65393, -16.94297], 5,
-     "Best bet for inline wheels and bearings (Oxelo wheels, bearings, Powerslide bearings online). Frames are rare in store: call first. Can also order Decathlon's own items to the store.",
-     {"Address": "Azinhaga do Poço Barral 14, Funchal", "Hours": "daily 9–22 (check)", "Phone": "+351 291 143 852"}, "node/0"),
-    ("mad-shop-omni", "Omni Skate & Surf Shop", [32.64886, -16.90637], 4,
+    ("mad-shop-decathlon", "Decathlon Funchal", [32.65335, -16.94307], 5, "4.5 (3,909 reviews)", "https://www.decathlon.pt", "Decathlon Funchal",
+     "Best bet for inline wheels and bearings (Oxelo wheels and bearings, Powerslide bearings). Frames are rare in store: call first. Can also order Decathlon's own items to the store.",
+     {"Address": "Azinhaga do Poço Barral 14, Funchal", "Hours": "opens 9:00 (check)", "Phone": "+351 291 143 852"}),
+    ("mad-shop-omni", "Omni Skate Shop", [32.64886, -16.90637], 4, "3.6 (85 reviews)", "https://www.facebook.com/OmniSkateSurfShop/", "Omni Skate Shop Funchal",
      "The island's only real skate shop. Skateboard bearings are the same size (608) as inline bearings. Inline wheels and frames unlikely, but the staff know the local skaters.",
-     {"Address": "Rua 31 de Janeiro 13, Funchal", "Hours": "Mon–Fri 10–20, Sat 10–17, Sun closed", "Phone": "965 063 946"}, ""),
-    ("mad-shop-connect", "Decathlon Connect (old town)", [32.64941, -16.90785], 3,
+     {"Address": "Rua 31 de Janeiro 13, Funchal", "Hours": "Mon–Fri 10–20, Sat 10–17, Sun closed", "Phone": "965 063 946"}),
+    ("mad-shop-connect", "Decathlon Connect Funchal (old town)", [32.64941, -16.90785], 3, "4.3 (91 reviews)", "https://www.decathlon.pt", "Decathlon Connect Funchal",
      "Small pickup store: order on decathlon.pt and collect here. Little skate stock in the shop itself. Marketplace items (most frames) cannot be collected here and take 8–10 working days to Madeira.",
-     {"Address": "Rua dos Ferreiros 70, Funchal", "Hours": "Mon–Fri 9:30–19:30, Sat 10–18:30, Sun closed", "Phone": "+351 927 591 168"}, ""),
-    ("mad-shop-sz-ms", "Sport Zone + Ericeira Surf & Skate (Madeira Shopping)", [32.65847, -16.95036], 2,
-     "Two shops in the same mall: Sport Zone may have complete skates, Ericeira Surf & Skate maybe skateboard bearings. Spare inline parts unlikely.",
-     {"Address": "Caminho de Santa Quitéria 45, Funchal", "Hours": "daily 10–23", "Phone": "+351 291 100 750"}, ""),
-    ("mad-shop-sz-forum", "Sport Zone (Fórum Madeira)", [32.63671, -16.94302], 2,
+     {"Address": "Rua dos Ferreiros 70, Funchal", "Hours": "Mon–Fri 9:30–19:30, Sat 10–18:30, Sun closed", "Phone": "969 245 369"}),
+    ("mad-shop-ericeira", "Ericeira Surf & Skate (Madeira Shopping)", [32.65974, -16.9506], 2, "4.2 (51 reviews)", "https://ericeirasurfskate.pt", "Ericeira Surf & Skate MadeiraShopping",
+     "Skate shop in the mall, mostly clothing. Maybe skateboard bearings (608 fits inlines). Inline wheels and frames unlikely. Sport Zone is in the same mall.",
+     {"Address": "Madeira Shopping, Caminho Santa Quitéria 45, Funchal", "Hours": "daily 10–23", "Phone": "261 860 330"}),
+    ("mad-shop-sz-ms", "Sport Zone (Madeira Shopping)", [32.65847, -16.95036], 2, "3.9 (131 reviews)", "https://www.sprintersports.com/pt", "Sport Zone MadeiraShopping Funchal",
      "May have complete recreational skates. Spare parts unlikely.",
-     {"Address": "Estrada Monumental 390, Funchal", "Hours": "daily 10–23", "Phone": "+351 939 650 940"}, ""),
-    ("mad-shop-bikezone", "Bike Zone Madeira", [32.63502, -16.94683], 2,
-     "Bike shop by the Lido promenade. Might have 608 bearings: ask.",
-     {"Address": "Rua da Ponta da Cruz, Funchal", "Hours": "Mon–Fri 10–13, 14–19", "Phone": "+351 291 782 202"}, ""),
-    ("mad-shop-cyr", "CYR Madeira (bearings wholesaler)", [32.65012, -16.8572], 2,
+     {"Address": "Caminho de Santa Quitéria, Madeira Shopping, Funchal", "Hours": "daily 10–23", "Phone": "930 588 432"}),
+    ("mad-shop-sz-forum", "Sport Zone (Fórum Madeira)", [32.63671, -16.94302], 2, "4.2 (289 reviews)", "https://www.sprintersports.com/pt", "Sport Zone Fórum Madeira",
+     "May have complete recreational skates. Spare parts unlikely.",
+     {"Address": "Estrada Monumental 390, Fórum Madeira, Funchal", "Hours": "daily 10–23", "Phone": "930 585 645"}),
+    ("mad-shop-cyr", "CYRmadeira (bearings supplier)", [32.64931, -16.85668], 2, "4.0 (5 reviews)", "https://cyr.pt/en/cyr-madeira", "CYRmadeira Caniço",
      "Industrial bearings (NTN, Koyo, SNR), so standard 608 bearings, not skate-rated. Mainly sells to businesses: ask if they sell to the public.",
-     {"Address": "Impasse da Rua Ribeiro das Freiras 3, Caniço", "Hours": "Mon–Fri 9–13, 14–18", "Phone": "+351 291 936 398"}, ""),
+     {"Address": "Rua do Ribeiro das Freiras 3, Caniço", "Hours": "Mon–Fri 9–13, 14–18", "Phone": "916 660 272"}),
 ]
-for sid, n, p, s, w, i, ref in SHOPS:
-    spots.append({"id": sid, "k": "shop", "n": n, "p": p, "s": s, "w": w, "i": dict(i, Source=SRC), "osm": "", "f": {}})
+for sid, n, p, s_, rating, web, q, w, i in SHOPS:
+    spots.append({"id": sid, "k": "shop", "n": n, "p": p, "s": s_, "w": w, "web": web, "gm": GM + q.replace(" ", "+"),
+                  "i": dict({"Google rating": rating + ", Nov 2026"}, **i, Source=SRC), "osm": "", "f": {}})
 
 # ---------- routes ----------
 CROWD_FX = "Funchal's seafront fills with cruise passengers from about 10 to 17: skate before 9 or after 18."
@@ -168,28 +170,37 @@ ROUTES = [
     # id, name, stars, via points, text, info, show the hill check
     ("mad-r-ribeirabrava", "Ribeira Brava: old coast road cycleway", 5, [(32.67105, -17.06623), (32.67286, -17.06904), (32.67695, -17.07815)],
      "Flat red-asphalt cycle lane, separated by a curb from a quiet road, along the old coast road west of Ribeira Brava: cliffs on one side, sea on the other, on the dry, sunny south-west. The last 340 m by town is excellent concrete. A dead end in the west (the old road beyond is closed by rockfall), so skate it out and back.",
-     {"Environment": "coast, cliffs", "Traffic": "own lane next to a quiet road", "Crowds": "quiet", "Rain": "dry side"}, False),
+     {"Environment": "coast, cliffs", "Traffic": "own lane next to a quiet road", "Crowds": "quiet", "Rain": "dry side", "Street View": "2026: wide, smooth red asphalt the whole way"}, False),
     ("mad-r-calheta", "Calheta: beach and marina promenade", 4, [(32.7168, -17.16918), (32.71744, -17.17201), (32.71964, -17.17454), (32.72077, -17.17808)],
      "Wide, flat concrete promenade along Calheta's sandy beach and marina on the driest, sunniest coast. Short, so do laps. Closed for a few weeks in January 2026 after rockfall, open again since.",
-     {"Environment": "coast, beach", "Traffic": "none", "Crowds": "busy around the beach in the afternoon", "Rain": "dry side"}, False),
+     {"Environment": "coast, beach", "Traffic": "none", "Crowds": "busy around the beach in the afternoon", "Rain": "dry side", "Street View": "smooth asphalt by the sea, concrete and pavers at the marina (2016–2024 photos)"}, False),
     ("mad-r-cavacas", "Funchal: Doca do Cavacas → Praia Formosa", 4, [(32.6357, -16.9478), (32.6407, -16.9527)],
      "Concrete cycleway and promenade from the Doca do Cavacas tunnel to Praia Formosa beach. Sea views, some short ramps. The promenade further west to Câmara de Lobos is closed after Storm Charles (Nov 2026): check the barriers, crossing them gets fined.",
-     {"Environment": "coast", "Traffic": "none", "Crowds": "walkers, busy at weekends", "Status": "check before you go"}, False),
+     {"Environment": "coast", "Traffic": "none", "Crowds": "walkers, busy at weekends", "Status": "check before you go", "Street View": "wide smooth concrete, a few cracks by Praia Formosa"}, False),
     ("mad-r-formosa-cdl", "CLOSED: Praia Formosa → Câmara de Lobos promenade", 3, [(32.6407, -16.9527), (32.64519, -16.96948)],
      "The best concrete promenade on the island (2.6 km, along the cliffs to the pump track in Câmara de Lobos), but closed since Storm Charles on 10–11 Nov 2026: the sea broke part of the walkway. Still closed on 17 Nov for a technical check; about two weeks were estimated. Do not cross the barriers.",
-     {"Environment": "coast, cliffs", "Traffic": "none", "Status": "closed (Nov 2026)"}, False),
+     {"Environment": "coast, cliffs", "Traffic": "none", "Status": "closed (Nov 2026)", "Street View": "smooth concrete with drain covers (before the storm)"}, False),
     ("mad-r-lido", "Funchal: Lido → Ponta da Cruz", 3, [(32.6356, -16.9328), (32.63421, -16.94663)],
      "Seafront promenade from the Lido pools, mostly paving stones in good condition, so expect joints. " + CROWD_FX,
-     {"Environment": "coast, hotels", "Traffic": "none", "Surface": "paving stones", "Crowds": "busy"}, False),
-    ("mad-r-jardimdomar", "Jardim do Mar promenade", 3, [(32.73531, -17.20895), (32.73979, -17.2126)],
-     "Seafront promenade in the small village of Jardim do Mar under steep cliffs, on the dry south-west. Paving stones in good condition, so joints. Nature and surf spot; quiet.",
-     {"Environment": "coast, cliffs, village", "Traffic": "none", "Surface": "paving stones", "Crowds": "quiet"}, False),
+     {"Environment": "coast, hotels", "Traffic": "none", "Surface": "paving stones", "Crowds": "busy", "Street View": "interlocking pavers with joints, a cobble stripe in places"}, False),
+    ("mad-r-jardimdomar", "Jardim do Mar promenade", 4, [(32.73531, -17.20895), (32.73979, -17.2126)],
+     "Wide seafront promenade in the small village of Jardim do Mar under steep cliffs, on the dry south-west. Looks even in Street View (the map data says paving stones). Nature and surf spot; quiet.",
+     {"Environment": "coast, cliffs, village", "Traffic": "none", "Crowds": "quiet", "Street View": "wide, even surface along the sea wall"}, False),
+    ("mad-r-monumental", "Funchal: Estrada Monumental cycle path (Lido → Praia Formosa)", 3, [(32.63852, -16.93362), (32.63544, -16.94234), (32.6406, -16.94852)],
+     "Concrete cycle path along Funchal's hotel road, linking the Lido to Praia Formosa above the closed seafront. Separated from the road by hedges and bollards, smooth red surface at the Lido end. City setting with traffic noise.",
+     {"Environment": "city, hotels", "Traffic": "own path next to a busy road", "Street View": "smooth red lane at the Lido end; elsewhere only seen from the road"}, False),
+    ("mad-r-madalena", "Madalena do Mar promenade", 3, [(32.70045, -17.13519), (32.70318, -17.13795)],
+     "Short seafront promenade of large concrete plates in the banana village of Madalena do Mar, cliffs behind, waves alongside. Joints between the plates. South-west, dry side.",
+     {"Environment": "coast, cliffs, village", "Traffic": "none", "Crowds": "quiet", "Street View": "large concrete plates with joints"}, False),
+    ("mad-r-canical", "Caniçal seafront promenade", 2, [(32.73571, -16.73989), (32.73544, -16.74582)],
+     "Paver promenade along the cliffs by the whale museum in Caniçal, on the far east. Narrow and with joints, but quiet and wild.",
+     {"Environment": "coast, cliffs", "Traffic": "none", "Crowds": "quiet", "Street View": "narrow pavers"}, False),
     ("mad-r-paulserra", "Paul da Serra plateau road (ER105/ER209)", 3, [(32.7644, -17.0822), (32.7578, -17.0972), (32.7515, -17.1115)],
      "Asphalt road across the high plateau, mostly a gentle descent westwards from about 1,490 to 1,385 m (3–4 % on average, one dip up to about 11 %, no sharp bends on the steep bits): moorland, wind turbines, views and wide open nature. It is a road with cars, and in Portugal skaters count as pedestrians, so stay at the edge. Often in fog and wind: go on a clear day. Drive up: every road down is long and steep with hairpins.",
-     {"Environment": "mountain plateau, nature", "Traffic": "cars", "Rain": "fog and wind common", "Surface": "asphalt"}, True),
+     {"Environment": "mountain plateau, nature", "Traffic": "cars", "Rain": "fog and wind common", "Surface": "asphalt", "Street View": "2026: good asphalt, wide verges"}, True),
     ("mad-r-portosanto", "Porto Santo: seafront cycleway (ferry)", 5, [(33.0479, -16.3539), (33.0254, -16.3799)],
      "The longest smooth car-free route in the archipelago: 3.8 km of asphalt cycleway along the 9 km beach, gentle slopes, and the driest island. Rollerblading is explicitly allowed on the promenade. Needs the ferry from Funchal (about 2.5 h).",
-     {"Environment": "coast, beach", "Traffic": "none (cycleway)", "Rain": "driest island", "Surface": "asphalt", "Slope": "gentle"}, False),
+     {"Environment": "coast, beach", "Traffic": "none (cycleway)", "Rain": "driest island", "Surface": "asphalt", "Slope": "gentle", "Street View": "only from the road; the cycleway itself is not shown. The town promenade is cobble"}, False),
 ]
 for rid, n, s, via, w, info, check in ROUTES:
     g, tot = trace(*via)

@@ -152,11 +152,13 @@ drawRate();
 
 // ---------- chips ----------
 function drawChips() {
-  const c = {}; for (const s of spots) c[s.k] = (c[s.k] || 0) + 1;
+  // counts cover what is on screen (plus a margin), so other regions do not inflate them
+  const c = {}, near = {}, bb = map.getBounds().pad(0.25);
+  for (const s of spots) { near[s.k] = 1; if (bb.contains(s.p)) c[s.k] = (c[s.k] || 0) + 1; }
   const allOn = Object.keys(KINDS).every((k) => st.on[k] || !c[k]);
   const nf = activeFilters();
   $("chips").innerHTML = `<span class="chip filt ${nf ? "act" : ""}"><button data-filters><svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2.2"><path d="M3 5h18M6 12h12M10 19h4"/></svg>Filters${nf ? ` <span class="n">${nf}</span>` : ""}</button></span><span class="chip all ${allOn ? "" : "off"}"><button data-all>All</button></span>` +
-    Object.entries(KINDS).filter(([k]) => c[k] || k === "mine").map(([k, v]) =>
+    Object.entries(KINDS).filter(([k]) => c[k] || st.on[k] && near[k] || k === "mine").map(([k, v]) =>
       `<span class="chip ${st.on[k] ? "" : "off"}" style="--c:var(${v.c})"><button class="tog" data-k="${k}" aria-pressed="${!!st.on[k]}" title="Show or hide ${v.l.toLowerCase()}"><span class="dot"></span>${v.l}<span class="n">${c[k] || 0}</span></button><button class="only" data-only="${k}" title="Show only ${v.l.toLowerCase()}">only</button></span>`).join("");
 }
 $("chips").onclick = (e) => {
@@ -184,7 +186,7 @@ const LABELS = { surf: { asphalt: "Asphalt", concrete: "Concrete", "court surfac
   hillLv: { gentle: "Gentle 2.5–4 %", mellow: "Mellow 4–6 %", solid: "Solid 6–9 %", steep: "Steep 9–13 %", "very steep": "Very steep 13 %+" }, flatType: { court: "Courts", parking: "Car parks", schoolyard: "Schoolyards" } };
 function drawFilters() {
   const F = st.f, c = {}; for (const s of spots) c[s.k] = (c[s.k] || 0) + 1;
-  $("fCats").innerHTML = Object.entries(KINDS).filter(([k]) => c[k] || k === "mine").map(([k, v]) =>
+  $("fCats").innerHTML = Object.entries(KINDS).filter(([k]) => c[k] || st.on[k] && near[k] || k === "mine").map(([k, v]) =>
     `<div class="fcat" style="--c:var(${v.c})"><label><input type="checkbox" data-cat="${k}" ${st.on[k] ? "checked" : ""}><span class="dot"></span>${v.l}<span class="n">${c[k] || 0}</span></label><button class="only" data-only="${k}">only</button></div>`).join("");
   $("nMin").value = F.nMin; $("nMax").value = F.nMax;
   for (const id of ["hasCount", "rail", "pavedEnds", "carFree", "bigPlaza", "noDirt"]) $(id).checked = !!F[id];
@@ -246,7 +248,7 @@ const G = { n: [], e: [] };
 async function loadRegions() {
   for (const r of REGIONS) {
     try {
-      const d = await (await fetch(`regions/${r}.json?v=2026-11-21a`)).json();
+      const d = await (await fetch(`regions/${r}.json?v=2026-11-21b`)).json();
       addSpots(d.spots);
       for (const q of ["1", "2", "3"]) surfData[q].push(...d.surf[q]);
       const off = G.n.length; G.n.push(...d.graph.n); for (const [a, b, l, q] of d.graph.e) G.e.push([a + off, b + off, l, q]);
@@ -330,7 +332,7 @@ function drawList(vs) {
 }
 $("list").onclick = (e) => { const b = e.target.closest(".item"); if (b) open(byId.get(b.dataset.id), true); };
 $("sheetBar").onclick = () => { const c = $("sheet").classList.toggle("collapsed"); $("sheetBar").setAttribute("aria-expanded", !c); $("sheetTitle").textContent = c ? "List" : (me ? "Spots near you" : "Spots in view"); drawList(); };
-let mvT; map.on("moveend zoomend", () => { clearTimeout(mvT); mvT = setTimeout(() => { st.view = { c: [map.getCenter().lat, map.getCenter().lng], z: map.getZoom() }; save(); render(); }, 200); });
+let mvT; map.on("moveend zoomend", () => { clearTimeout(mvT); mvT = setTimeout(() => { st.view = { c: [map.getCenter().lat, map.getCenter().lng], z: map.getZoom() }; save(); render(); drawChips(); }, 200); });
 
 // ---------- spot card with Street View ----------
 function svUrl(s, embed) {
@@ -368,7 +370,7 @@ function open(s, fly) {
     <div class="sv"><div class="svmsg">Loading Street View…<br>If it stays empty there is no Street View here.</div><iframe src="${svUrl(s, true)}" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" title="Street View"></iframe></div>
     <div class="body">
       <div><div class="kind" style="--c:${col}">${esc(SUBL[s.sub] || KINDS[s.k].one)}</div><h2>${esc(s.n)}</h2>
-        <div class="stars" style="margin-top:4px">${stars(s.s)} <span class="small">${s.k === "mine" ? "your spot" : "estimated from map data"}</span></div></div>
+        <div class="stars" style="margin-top:4px">${stars(s.s)} <span class="small">${s.k === "mine" ? "your spot" : /by hand/.test(s.i?.Source || "") ? "rated by hand" : "estimated from map data"}</span></div></div>
       <div class="why">${esc(s.w)}</div>
       ${s.prof ? profSVG(s.prof, col) : ""}
       ${s.i ? `<dl>${Object.entries(s.i).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>` : ""}
@@ -376,7 +378,8 @@ function open(s, fly) {
         <button class="btn primary" id="cShare">Share link</button>
         <a href="${svUrl(s)}" target="_blank" rel="noopener">Open Street View</a>
         <a href="https://www.google.com/maps/dir/?api=1&destination=${la},${lo}&travelmode=walking" target="_blank" rel="noopener">Directions</a>
-        <a href="https://www.google.com/maps/search/?api=1&query=${la},${lo}" target="_blank" rel="noopener">Google Maps</a>
+        <a href="${s.gm ? esc(s.gm) : `https://www.google.com/maps/search/?api=1&query=${la},${lo}`}" target="_blank" rel="noopener">Google Maps</a>
+        ${s.web ? `<a href="${esc(s.web)}" target="_blank" rel="noopener">Website</a>` : ""}
         ${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">City page</a>` : ""}
         ${s.tf ? `<a href="${esc(s.tf)}" target="_blank" rel="noopener">Trucks &amp; Fins</a>` : ""}
         ${s.osm ? `<a href="https://www.openstreetmap.org/${s.osm}" target="_blank" rel="noopener">OpenStreetMap</a>` : ""}
