@@ -13,6 +13,7 @@ const KINDS = {
   plaza: { l: "Plazas", one: "Plaza / pedestrian street", c: "--c-plaza" },
   flat:  { l: "Flat ground", one: "Flat ground", c: "--c-flat" },
   route: { l: "Routes", one: "Suggested route", c: "--c-route" },
+  shop:  { l: "Shops", one: "Shop: skate parts", c: "--c-shop" },
   mine:  { l: "My spots", one: "My spot", c: "--c-mine" },
 };
 const SUBC = { long: "--c-long", short: "--c-short" };
@@ -31,7 +32,7 @@ const bearing = (a, b) => { const r = Math.PI / 180; return ((Math.atan2((b[1] -
 // ---------- state ----------
 let st = {}; try { st = JSON.parse(localStorage.getItem("skatemap") || "{}"); } catch (e) {}
 const save = () => { try { localStorage.setItem("skatemap", JSON.stringify(st)); } catch (e) {} syncHash(); };
-st.on = Object.assign({ park: 1, pump: 1, rink: 1, steps: 1, longsteps: 1, hill: 1, ledge: 1, rail: 1, plaza: 1, flat: 0, route: 0, mine: 1 }, st.on || {});
+st.on = Object.assign({ park: 1, pump: 1, rink: 1, steps: 1, longsteps: 1, hill: 1, ledge: 1, rail: 1, plaza: 1, flat: 0, route: 0, shop: 1, mine: 1 }, st.on || {});
 const FDEF = { nMin: 0, nMax: 99, stepType: "any", rail: false, pavedEnds: false, hasCount: false,
   flatType: { court: true, parking: true, schoolyard: true }, surf: { asphalt: true, concrete: true, "court surface": true, "paving stones": true, paved: true, unknown: true },
   hillLv: { gentle: true, mellow: true, solid: true, steep: true, "very steep": true }, carFree: false, bigPlaza: false, noDirt: false, hub: "any" };
@@ -42,8 +43,8 @@ st.notes = st.notes || {}; st.mine = st.mine || []; st.min = st.min || 1;
 
 // ---------- shareable links: the address holds the view, categories, filters, map style and selection ----------
 // Short form, only what differs from the defaults, e.g. #m=59.2803,18.1358,18&c=h&h=g&s=soh153273974
-const CAT = { park: "p", pump: "b", rink: "i", steps: "s", longsteps: "l", hill: "h", ledge: "e", rail: "r", plaza: "z", flat: "f", route: "o", mine: "m" };
-const ONDEF = { park: 1, pump: 1, rink: 1, steps: 1, longsteps: 1, hill: 1, ledge: 1, rail: 1, plaza: 1, flat: 0, route: 0, mine: 1 };
+const CAT = { park: "p", pump: "b", rink: "i", steps: "s", longsteps: "l", hill: "h", ledge: "e", rail: "r", plaza: "z", flat: "f", route: "o", shop: "u", mine: "m" };
+const ONDEF = { park: 1, pump: 1, rink: 1, steps: 1, longsteps: 1, hill: 1, ledge: 1, rail: 1, plaza: 1, flat: 0, route: 0, shop: 1, mine: 1 };
 const FLAG = { rail: "r", pavedEnds: "e", hasCount: "c", carFree: "f", bigPlaza: "p", noDirt: "d" };
 const SURF = { asphalt: "a", concrete: "c", "court surface": "k", "paving stones": "p", paved: "v", unknown: "x" };
 const HLV = { gentle: "g", mellow: "m", solid: "s", steep: "t", "very steep": "v" };
@@ -245,7 +246,7 @@ const G = { n: [], e: [] };
 async function loadRegions() {
   for (const r of REGIONS) {
     try {
-      const d = await (await fetch(`regions/${r}.json?v=2026-11-20a`)).json();
+      const d = await (await fetch(`regions/${r}.json?v=2026-11-21a`)).json();
       addSpots(d.spots);
       for (const q of ["1", "2", "3"]) surfData[q].push(...d.surf[q]);
       const off = G.n.length; G.n.push(...d.graph.n); for (const [a, b, l, q] of d.graph.e) G.e.push([a + off, b + off, l, q]);
