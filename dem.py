@@ -5,7 +5,7 @@ WebP is decoded with macOS `sips` to PNG, and the PNG is read here with zlib (no
 import math, os, struct, subprocess, urllib.request, zlib
 HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(HERE, "data", "dem_tiles")
-Z = 15
+Z = int(os.environ.get("DEM_Z", 15))  # Madeira only has zoom 13 (~8 m per pixel)
 _tiles = {}
 
 def _png_rgb(path):

@@ -13,4 +13,4 @@ Detaljer och deploy: `README.md`.
 
 Lokalt: `skatekartan` i `01_Privat/.claude/launch.json` → http://localhost:8472/web/
 Ny region: `python3 process.py <region>`.
-Madeira (handplockad, semester nov 2026): `python3 madeira.py` → `web/regions/madeira.json`.
+Madeira (handplockad för inlines, semester nov 2026): `python3 madeira.py` → `web/regions/madeira.json`. `madeira_scan.py` skannar hela ön efter släta bilfria sträckor. Råa OSM-svar hämtas om med `data/madeira/q_*.txt`.

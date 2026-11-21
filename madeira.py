@@ -1,120 +1,219 @@
-"""Builds web/regions/madeira.json: hand-picked spots on Madeira (holiday region, no full OSM scan).
+"""Builds web/regions/madeira.json: the best inline-skating spots on Madeira, picked by hand (Nov 2026 trip).
 
-Inputs: data/madeira/spots.json (Overpass, q_spots.txt), data/madeira/prom.json (Overpass, q_prom.txt).
-Promenade geometry is traced along the Passeio Público Marítimo; surfaces come from OSM tags.
+Inputs (Overpass answers, refetch with the q_*.txt files in data/madeira/):
+  paths1..4.json  footways, cycleways, paths and coastline for the whole island (q_paths1..4.txt)
+  roads.json      Paul da Serra plateau roads and Porto Santo cycleway (q_roads.txt)
+  prom.json       Funchal–Câmara de Lobos promenade (q_prom.txt)
+  spots.json      skateparks and pump tracks (q_spots.txt)
+How the picks were made: madeira_scan.py lists every smooth car-free stretch; most are steep alleys (veredas) or
+narrow levada paths, so the routes below are the flat seafront ones, checked in satellite images and the news.
+Each route gets a steepness and sharp-turn check from the terrain model (Mapterhorn zoom 13, ~8 m per pixel;
+unreliable right at sea cliffs, so the check is shown only where it is believable).
 Run: python3 madeira.py
 """
-import heapq, json, math, os
+import glob, heapq, json, math, os, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 D = os.path.join(HERE, "data", "madeira")
-PROMENADE = ("Passeio Público Marítimo", "Túnel da Doca do Cavacas", "Cais do Carvão")
+os.environ.setdefault("DEM_Z", "13")
+sys.path.insert(0, HERE); import dem
+
+SRC = "picked by hand (Madeira trip, Nov 2026)"
+SMOOTH = {"asphalt", "concrete", "concrete:lanes", "concrete:plates", "paved", "paving_stones"}
 
 
 def dist(a, b):
-    x = (b[1] - a[1]) * math.cos(math.radians(a[0])) * 111320
-    y = (b[0] - a[0]) * 110540
+    x = (b[1] - a[1]) * math.cos(math.radians(a[0])) * 111320; y = (b[0] - a[0]) * 110540
     return math.hypot(x, y)
 
 
-# ---------- promenade routes ----------
-prom = json.load(open(os.path.join(D, "prom.json")))
+# ---------- one graph of every path and road we have ----------
+els, seen = [], set()
+for f in sorted(glob.glob(os.path.join(D, "paths[0-9].json"))) + [os.path.join(D, "roads.json"), os.path.join(D, "prom.json")]:
+    for e in json.load(open(f))["elements"]:
+        if e["id"] in seen or not e["tags"].get("highway"): continue
+        seen.add(e["id"]); els.append(e)
 adj, surf = {}, {}
-for e in prom["elements"]:
-    g = [(round(p["lat"], 6), round(p["lon"], 6)) for p in e["geometry"]]
-    s = e["tags"].get("surface", "?")
-    k = 1 if e["tags"].get("name") in PROMENADE else 6  # stay on the promenade
+for e in els:
+    t = e["tags"]; g = [(round(p["lat"], 6), round(p["lon"], 6)) for p in e["geometry"] if p]
+    good = t.get("surface") in SMOOTH and t.get("access") != "no"
     for a, b in zip(g, g[1:]):
-        w = dist(a, b) * k
+        w = dist(a, b) * (1 if good else 8)
         adj.setdefault(a, []).append((b, w)); adj.setdefault(b, []).append((a, w))
-        surf[(a, b)] = surf[(b, a)] = s
+        surf[(a, b)] = surf[(b, a)] = t.get("surface", "?")
 
 
-def trace(A, B):
-    a = min(adj, key=lambda q: dist(A, q)); b = min(adj, key=lambda q: dist(B, q))
-    best, prev, h = {a: 0}, {}, [(0, a)]
-    while h:
-        c, u = heapq.heappop(h)
-        if u == b: break
-        if c > best[u]: continue
-        for v, w in adj[u]:
-            if c + w < best.get(v, 1e18): best[v] = c + w; prev[v] = u; heapq.heappush(h, (c + w, v))
-    path = [b]
-    while path[-1] != a: path.append(prev[path[-1]])
-    path.reverse()
-    tot = {}
-    for x, y in zip(path, path[1:]): tot[surf[(x, y)]] = tot.get(surf[(x, y)], 0) + dist(x, y)
-    return [[round(p[0], 5), round(p[1], 5)] for p in path], tot
+def trace(*via):
+    """Shortest smooth way through the given points, as one polyline."""
+    out, tot = [], {}
+    for A, B in zip(via, via[1:]):
+        a = min(adj, key=lambda q: dist(A, q)); b = min(adj, key=lambda q: dist(B, q))
+        best, prev, h = {a: 0}, {}, [(0, a)]
+        while h:
+            c, u = heapq.heappop(h)
+            if u == b: break
+            if c > best[u]: continue
+            for v, w in adj[u]:
+                if c + w < best.get(v, 1e18): best[v] = c + w; prev[v] = u; heapq.heappush(h, (c + w, v))
+        path = [b]
+        while path[-1] != a: path.append(prev[path[-1]])
+        path.reverse()
+        for x, y in zip(path, path[1:]): tot[surf[(x, y)]] = tot.get(surf[(x, y)], 0) + dist(x, y)
+        out += path if not out else path[1:]
+    return [[round(p[0], 5), round(p[1], 5)] for p in out], tot
 
 
-LIDO, PONTA = (32.6356, -16.9328), (32.63421, -16.94663)
-CAVACAS, FORMOSA, CDL = (32.6357, -16.9478), (32.6407, -16.9527), (32.64519, -16.96948)
-g_lido, t_lido = trace(LIDO, PONTA)
-g_w1, t_w1 = trace(CAVACAS, FORMOSA)
-g_w2, t_w2 = trace(FORMOSA, CDL)
-g_west = g_w1 + g_w2[1:]
-glen = lambda g: sum(dist(a, b) for a, b in zip(g, g[1:]))
-km = lambda m: f"{m / 1000:.1f} km"
-share = lambda t, k: round(100 * t.get(k, 0) / max(1, sum(t.values())))
+def glen(g): return sum(dist(a, b) for a, b in zip(g, g[1:]))
+def km(m): return f"{m / 1000:.1f} km"
 
-# ---------- spots ----------
+
+def hill(g):
+    """Steepest 100 m (in %) and sharp turns (over 60° within ~40 m) where the grade is over 6 %."""
+    pts = [g[0]]
+    for a, b in zip(g, g[1:]):
+        d = dist(a, b); n = int(d // 20)
+        for i in range(1, n + 1): pts.append((a[0] + (b[0] - a[0]) * i * 20 / d, a[1] + (b[1] - a[1]) * i * 20 / d))
+        pts.append(tuple(b))
+    h = [dem.elevation(*p) for p in pts]
+    cum = [0]
+    for a, b in zip(pts, pts[1:]): cum.append(cum[-1] + dist(a, b))
+    worst, steep, j = 0, set(), 0
+    for i in range(len(pts)):
+        while j < len(pts) - 1 and cum[j] - cum[i] < 100: j += 1
+        if cum[j] - cum[i] >= 80:
+            gr = abs(h[j] - h[i]) / (cum[j] - cum[i]); worst = max(worst, gr)
+            if gr > 0.06: steep.update(range(i, j + 1))
+    hd = lambda a, b: math.degrees(math.atan2((b[1] - a[1]) * math.cos(math.radians(a[0])), b[0] - a[0]))
+    sharp, last = 0, -99
+    for i in range(2, len(pts) - 2):
+        if i in steep and i - last > 4 and abs((hd(pts[i - 2], pts[i]) - hd(pts[i], pts[i + 2]) + 180) % 360 - 180) > 60:
+            sharp += 1; last = i
+    return round(worst * 100), sharp, round(max(h) - min(h))
+
+
+# ---------- point spots from the map data ----------
 osm = {f'{e["type"]}/{e["id"]}': e for e in json.load(open(os.path.join(D, "spots.json")))["elements"]}
 def pos(ref):
     e = osm[ref]; c = e.get("center") or e
     return [round(c["lat"], 5), round(c["lon"], 5)]
 
-SRC = "added by hand (Madeira trip, Nov 2026)"
+NOFLAG = {"indoor": False, "dirt": False}
 spots = [
+    # parks and tracks
     {"id": "mad-funchal", "k": "park", "n": "Skate Park do Funchal", "osm": "way/439681059", "s": 5,
-     "w": "The island's main skatepark. Concrete, about 900 m², lit, free. Quarters, banks, funboxes, pyramid, rails, curbs, step-up. Seafront next to the Monte cable car.",
-     "i": {"Surface": "concrete", "Lit": "yes", "Size": "~900 m²", "Source": SRC},
-     "tf": "https://trucksandfins.com/en/spots/skateparks/Funchal-skatepark/2082", "f": {"indoor": False, "dirt": False}},
+     "w": "The island's main skatepark, by the sea next to the Monte cable car. Concrete, about 900 m², lit, free. Quarters, banks, funboxes, pyramid, rails, curbs. Busy after school, quiet in the morning.",
+     "i": {"Surface": "concrete", "Lit": "yes", "Rain": "open air", "Source": SRC}, "tf": "https://trucksandfins.com/en/spots/skateparks/Funchal-skatepark/2082", "f": NOFLAG},
+    {"id": "mad-prazeres", "k": "park", "n": "Patinódromo dos Prazeres (speed skating track)", "osm": "way/925740671", "s": 4,
+     "w": "A real inline speed-skating track (€619k, national championships June 2026), up in Prazeres on the dry south-west. Run by the club CDR Prazeres: ask the club before you skate. Their skaters also know where to get frames and wheels on the island.",
+     "i": {"Type": "speed skating track", "Surface": "track surface", "Access": "ask CDR Prazeres", "Source": SRC}, "f": NOFLAG},
     {"id": "mad-aguadepena", "k": "park", "n": "Skate Park Água de Pena (under the runway)", "osm": "way/286841835", "s": 4,
-     "w": "Under the airport runway pillars, so covered: works in rain. The sports park around it was reported run down in 2024, so check recent photos first.",
-     "i": {"Surface": "unknown", "Covered": "yes", "Source": SRC},
-     "tf": "https://trucksandfins.com/en/spots/skateparks/aeroporto-skatepark/25201", "f": {"indoor": False, "dirt": False}},
-    {"id": "mad-graca", "k": "park", "n": "Jardins da Graça Skatepark (Machico)", "osm": "way/557467935", "s": 4,
-     "w": "Concrete skatepark in Machico, lit. Only known from the map data, no reviews found.",
-     "i": {"Surface": "concrete", "Lit": "yes", "Source": SRC}, "f": {"indoor": False, "dirt": False}},
-    {"id": "mad-prazeres", "k": "park", "n": "Pista de Patinagem dos Prazeres", "osm": "way/925740671", "s": 2,
-     "w": "Skating area up in Prazeres (Calheta). Only known from the map data: size and surface unknown.",
-     "i": {"Surface": "unknown", "Source": SRC}, "f": {"indoor": False, "dirt": False}},
-    {"id": "mad-santodaserra", "k": "park", "n": "Roller skating track (Santo da Serra)", "osm": "way/138481140", "s": 2,
-     "w": "Roller skating track in the map data. Nothing else known: check the satellite view first.",
-     "i": {"Type": "roller skating track", "Surface": "unknown", "Source": SRC}, "f": {"indoor": False, "dirt": False}},
-    {"id": "mad-smartinho", "k": "park", "n": "Small skate area (São Martinho)", "osm": "way/1108231881", "s": 1,
-     "w": "Marked as a skate area in the map data, but traced automatically from satellite images. May not exist.",
-     "i": {"Surface": "unknown", "Source": SRC}, "f": {"indoor": False, "dirt": False}},
+     "w": "Under the airport runway pillars, so it stays dry: the best rain option. Inside a paid sports complex (weekdays 10–18, shorter at weekends). The complex is run down and works were announced for 2026, so check recent photos.",
+     "i": {"Surface": "unknown", "Rain": "covered", "Hours": "Mon–Fri 10–18, Sat–Sun 10–17", "Source": SRC},
+     "tf": "https://trucksandfins.com/en/spots/skateparks/aeroporto-skatepark/25201", "f": NOFLAG},
+    {"id": "mad-graca", "k": "park", "n": "Jardins da Graça Skatepark (Machico)", "osm": "way/557467935", "s": 3,
+     "w": "Concrete skatepark in Machico, lit. Only known from the map data, no reviews found. Combine with the smooth seafront on the east side of the bay.",
+     "i": {"Surface": "concrete", "Lit": "yes", "Source": SRC}, "f": NOFLAG},
+    {"id": "mad-faial", "k": "park", "n": "Roller track Faial (north coast)", "osm": "way/138481140", "s": 3,
+     "w": "Roller skating track on the north side, probably the venue of the Biosfera Roller Skate race. Wetter side of the island. Access not checked.",
+     "i": {"Type": "roller skating track", "Surface": "unknown", "Source": SRC}, "f": NOFLAG},
     {"id": "mad-cdl-pump", "k": "pump", "n": "Pump track Câmara de Lobos", "osm": "way/1417537845", "s": 5,
-     "w": "Concrete pump track in the new sports park (opened July 2025). Built for skateboards, bikes, skates and scooters.",
-     "i": {"Surface": "concrete", "Opened": "July 2025", "Source": SRC}, "f": {"indoor": False, "dirt": False}},
-    {"id": "mad-garajau-pump", "k": "pump", "n": "Pumptrack Parque do Garajau (Caniço)", "osm": "way/736909674", "s": 3,
-     "w": "Pump track in Parque do Garajau. Surface not known: could be asphalt or dirt, check before you go.",
-     "i": {"Surface": "unknown", "Source": SRC}, "f": {"indoor": False, "dirt": False}},
-    {"id": "mad-povo", "k": "plaza", "n": "Praça do Povo (Funchal)", "osm": "way/316457941", "s": 3,
-     "w": "New open seafront square by the harbour. The tourist board lists rollerblading and cycling there. Check the paving: much of Funchal is Madeiran cobble.",
-     "i": {"Surface": "unknown", "Source": SRC}, "sub": None, "f": {"su": "unknown", "area": 1}},
+     "w": "Concrete pump track in the new sports park (opened July 2025), for skates, boards, bikes and scooters. The best confirmed new spot on the island.",
+     "i": {"Surface": "concrete", "Opened": "July 2025", "Source": SRC}, "f": NOFLAG},
+    {"id": "mad-garajau-pump", "k": "pump", "n": "Pumptrack Parque do Garajau (Caniço)", "osm": "way/736909674", "s": 2,
+     "w": "Only known from the map data, tagged as a BMX track. Surface unknown: could be dirt. Check the satellite view before you drive there.",
+     "i": {"Surface": "unknown", "Source": SRC}, "f": NOFLAG},
 ]
-KNOWN = {"way/316457941": [32.64662, -16.90805]}  # Praça do Povo, from Nominatim
-for s in spots: s["p"] = KNOWN.get(s["osm"]) or pos(s["osm"])
+for s in spots: s["p"] = pos(s["osm"])
 
+# smooth squares (too short or too broken up to be routes)
 spots += [
-    {"id": "mad-prom-west", "k": "route", "n": "Promenade: Doca do Cavacas → Praia Formosa → Câmara de Lobos", "p": g_west[0], "g": g_west, "s": 5,
-     "w": f"The best cruise found on the island: {km(glen(g_west))} along the sea, {share({k: t_w1.get(k, 0) + t_w2.get(k, 0) for k in set(t_w1) | set(t_w2)}, 'concrete')}% concrete in the map data, through the tunnel at Doca do Cavacas. Parts close or get damaged after storms. Ends near the pump track in Câmara de Lobos.",
-     "i": {"Length": km(glen(g_west)), "Surface": "concrete", "Source": SRC}, "f": {"su": "concrete"}},
-    {"id": "mad-prom-lido", "k": "route", "n": "Promenade: Lido → Ponta da Cruz", "p": g_lido[0], "g": g_lido, "s": 3,
-     "w": f"{km(glen(g_lido))} along the sea from the Lido pools, but {share(t_lido, 'paving_stones') + share(t_lido, 'sett')}% paving stones in the map data, so expect joints. The link on to the Doca do Cavacas tunnel is missing in the map data and was reported closed.",
-     "i": {"Length": km(glen(g_lido)), "Surface": "paving stones", "Source": SRC}, "f": {"su": "paving stones"}},
+    {"id": "mad-z-funchal", "k": "plaza", "n": "Funchal: Praça do Povo and the marina", "p": [32.64655, -16.9095], "osm": "way/166623172", "s": 4, "sub": "smoothplaza",
+     "w": "The smooth part of Funchal's seafront: excellent concrete squares by Praça do Povo and along the marina, lit at night. Laps rather than a cruise. The rest of the seafront and Avenida Arriaga is Madeiran cobble: avoid. Cruise passengers fill it from about 10 to 17, so skate before 9 or after 18.",
+     "i": {"Surface": "concrete, smooth pavers", "Lit": "yes", "Crowds": "very busy 10–17", "Source": SRC}, "f": {"su": "concrete", "area": 1}},
+    {"id": "mad-z-machico", "k": "plaza", "n": "Machico: east side of the bay", "p": [32.7189, -16.76146], "osm": "way/556484075", "s": 3, "sub": "smoothplaza",
+     "w": "Excellent concrete square and a 250 m asphalt path by the beach on the São Roque side of Machico bay. Flat and quiet. The town seafront is cobble. Jardins da Graça skatepark is a few minutes away.",
+     "i": {"Surface": "concrete, asphalt", "Crowds": "quiet", "Source": SRC}, "f": {"su": "concrete", "area": 1}},
 ]
 
-# surface layer: smooth (3) = concrete, okay (2) = paving stones
-lines = {"1": [], "2": [], "3": []}
-for e in prom["elements"]:
-    t = e["tags"]
-    if t.get("name") not in PROMENADE: continue
-    q = {"concrete": "3", "asphalt": "3", "paving_stones": "2", "sett": "1"}.get(t.get("surface"))
-    if q: lines[q].append([[round(p["lat"], 5), round(p["lon"], 5)] for p in e["geometry"]])
+# ---------- shops for inline parts ----------
+SHOPS = [
+    ("mad-shop-decathlon", "Decathlon Funchal", [32.65393, -16.94297], 5,
+     "Best bet for inline wheels and bearings (Oxelo wheels, bearings, Powerslide bearings online). Frames are rare in store: call first. Can also order Decathlon's own items to the store.",
+     {"Address": "Azinhaga do Poço Barral 14, Funchal", "Hours": "daily 9–22 (check)", "Phone": "+351 291 143 852"}, "node/0"),
+    ("mad-shop-omni", "Omni Skate & Surf Shop", [32.64886, -16.90637], 4,
+     "The island's only real skate shop. Skateboard bearings are the same size (608) as inline bearings. Inline wheels and frames unlikely, but the staff know the local skaters.",
+     {"Address": "Rua 31 de Janeiro 13, Funchal", "Hours": "Mon–Fri 10–20, Sat 10–17, Sun closed", "Phone": "965 063 946"}, ""),
+    ("mad-shop-connect", "Decathlon Connect (old town)", [32.64941, -16.90785], 3,
+     "Small pickup store: order on decathlon.pt and collect here. Little skate stock in the shop itself. Marketplace items (most frames) cannot be collected here and take 8–10 working days to Madeira.",
+     {"Address": "Rua dos Ferreiros 70, Funchal", "Hours": "Mon–Fri 9:30–19:30, Sat 10–18:30, Sun closed", "Phone": "+351 927 591 168"}, ""),
+    ("mad-shop-sz-ms", "Sport Zone + Ericeira Surf & Skate (Madeira Shopping)", [32.65847, -16.95036], 2,
+     "Two shops in the same mall: Sport Zone may have complete skates, Ericeira Surf & Skate maybe skateboard bearings. Spare inline parts unlikely.",
+     {"Address": "Caminho de Santa Quitéria 45, Funchal", "Hours": "daily 10–23", "Phone": "+351 291 100 750"}, ""),
+    ("mad-shop-sz-forum", "Sport Zone (Fórum Madeira)", [32.63671, -16.94302], 2,
+     "May have complete recreational skates. Spare parts unlikely.",
+     {"Address": "Estrada Monumental 390, Funchal", "Hours": "daily 10–23", "Phone": "+351 939 650 940"}, ""),
+    ("mad-shop-bikezone", "Bike Zone Madeira", [32.63502, -16.94683], 2,
+     "Bike shop by the Lido promenade. Might have 608 bearings: ask.",
+     {"Address": "Rua da Ponta da Cruz, Funchal", "Hours": "Mon–Fri 10–13, 14–19", "Phone": "+351 291 782 202"}, ""),
+    ("mad-shop-cyr", "CYR Madeira (bearings wholesaler)", [32.65012, -16.8572], 2,
+     "Industrial bearings (NTN, Koyo, SNR), so standard 608 bearings, not skate-rated. Mainly sells to businesses: ask if they sell to the public.",
+     {"Address": "Impasse da Rua Ribeiro das Freiras 3, Caniço", "Hours": "Mon–Fri 9–13, 14–18", "Phone": "+351 291 936 398"}, ""),
+]
+for sid, n, p, s, w, i, ref in SHOPS:
+    spots.append({"id": sid, "k": "shop", "n": n, "p": p, "s": s, "w": w, "i": dict(i, Source=SRC), "osm": "", "f": {}})
 
-out = {"name": "madeira", "bbox": [32.6, 32.9, -17.3, -16.6], "surf": lines, "spots": spots, "graph": {"n": [], "e": []}, "built": "2026-11-20"}
+# ---------- routes ----------
+CROWD_FX = "Funchal's seafront fills with cruise passengers from about 10 to 17: skate before 9 or after 18."
+ROUTES = [
+    # id, name, stars, via points, text, info, show the hill check
+    ("mad-r-ribeirabrava", "Ribeira Brava: old coast road cycleway", 5, [(32.67105, -17.06623), (32.67286, -17.06904), (32.67695, -17.07815)],
+     "Flat red-asphalt cycle lane, separated by a curb from a quiet road, along the old coast road west of Ribeira Brava: cliffs on one side, sea on the other, on the dry, sunny south-west. The last 340 m by town is excellent concrete. A dead end in the west (the old road beyond is closed by rockfall), so skate it out and back.",
+     {"Environment": "coast, cliffs", "Traffic": "own lane next to a quiet road", "Crowds": "quiet", "Rain": "dry side"}, False),
+    ("mad-r-calheta", "Calheta: beach and marina promenade", 4, [(32.7168, -17.16918), (32.71744, -17.17201), (32.71964, -17.17454), (32.72077, -17.17808)],
+     "Wide, flat concrete promenade along Calheta's sandy beach and marina on the driest, sunniest coast. Short, so do laps. Closed for a few weeks in January 2026 after rockfall, open again since.",
+     {"Environment": "coast, beach", "Traffic": "none", "Crowds": "busy around the beach in the afternoon", "Rain": "dry side"}, False),
+    ("mad-r-cavacas", "Funchal: Doca do Cavacas → Praia Formosa", 4, [(32.6357, -16.9478), (32.6407, -16.9527)],
+     "Concrete cycleway and promenade from the Doca do Cavacas tunnel to Praia Formosa beach. Sea views, some short ramps. The promenade further west to Câmara de Lobos is closed after Storm Charles (Nov 2026): check the barriers, crossing them gets fined.",
+     {"Environment": "coast", "Traffic": "none", "Crowds": "walkers, busy at weekends", "Status": "check before you go"}, False),
+    ("mad-r-formosa-cdl", "CLOSED: Praia Formosa → Câmara de Lobos promenade", 3, [(32.6407, -16.9527), (32.64519, -16.96948)],
+     "The best concrete promenade on the island (2.6 km, along the cliffs to the pump track in Câmara de Lobos), but closed since Storm Charles on 10–11 Nov 2026: the sea broke part of the walkway. Still closed on 17 Nov for a technical check; about two weeks were estimated. Do not cross the barriers.",
+     {"Environment": "coast, cliffs", "Traffic": "none", "Status": "closed (Nov 2026)"}, False),
+    ("mad-r-lido", "Funchal: Lido → Ponta da Cruz", 3, [(32.6356, -16.9328), (32.63421, -16.94663)],
+     "Seafront promenade from the Lido pools, mostly paving stones in good condition, so expect joints. " + CROWD_FX,
+     {"Environment": "coast, hotels", "Traffic": "none", "Surface": "paving stones", "Crowds": "busy"}, False),
+    ("mad-r-jardimdomar", "Jardim do Mar promenade", 3, [(32.73531, -17.20895), (32.73979, -17.2126)],
+     "Seafront promenade in the small village of Jardim do Mar under steep cliffs, on the dry south-west. Paving stones in good condition, so joints. Nature and surf spot; quiet.",
+     {"Environment": "coast, cliffs, village", "Traffic": "none", "Surface": "paving stones", "Crowds": "quiet"}, False),
+    ("mad-r-paulserra", "Paul da Serra plateau road (ER105/ER209)", 3, [(32.7644, -17.0822), (32.7578, -17.0972), (32.7515, -17.1115)],
+     "Asphalt road across the high plateau, mostly a gentle descent westwards from about 1,490 to 1,385 m (3–4 % on average, one dip up to about 11 %, no sharp bends on the steep bits): moorland, wind turbines, views and wide open nature. It is a road with cars, and in Portugal skaters count as pedestrians, so stay at the edge. Often in fog and wind: go on a clear day. Drive up: every road down is long and steep with hairpins.",
+     {"Environment": "mountain plateau, nature", "Traffic": "cars", "Rain": "fog and wind common", "Surface": "asphalt"}, True),
+    ("mad-r-portosanto", "Porto Santo: seafront cycleway (ferry)", 5, [(33.0479, -16.3539), (33.0254, -16.3799)],
+     "The longest smooth car-free route in the archipelago: 3.8 km of asphalt cycleway along the 9 km beach, gentle slopes, and the driest island. Rollerblading is explicitly allowed on the promenade. Needs the ferry from Funchal (about 2.5 h).",
+     {"Environment": "coast, beach", "Traffic": "none (cycleway)", "Rain": "driest island", "Surface": "asphalt", "Slope": "gentle"}, False),
+]
+for rid, n, s, via, w, info, check in ROUTES:
+    g, tot = trace(*via)
+    L = glen(g); top = max(tot, key=tot.get)
+    i = {"Length": km(L)}
+    i.update(info)
+    i.setdefault("Surface", top.replace("_", " "))
+    if check:
+        worst, sharp, rise = hill(g)
+        i["Steepest 100 m"] = f"{worst} %"; i["Sharp turns on steep parts"] = str(sharp); i["Height difference"] = f"{rise} m"
+    i["Source"] = SRC
+    spots.append({"id": rid, "k": "route", "n": n, "p": g[0], "g": g, "s": s, "w": w, "i": i, "f": {}})
+    print(f"{n}: {km(L)} {({k: round(v) for k, v in tot.items()})} {i.get('Steepest 100 m', '')} {i.get('Sharp turns on steep parts', '')}")
+
+# ---------- surface layer: the seafront and cycleways we checked ----------
+lines = {"1": [], "2": [], "3": []}
+for e in els:
+    t = e["tags"]
+    if t.get("highway") not in ("footway", "pedestrian", "cycleway"): continue
+    g = [[round(p["lat"], 5), round(p["lon"], 5)] for p in e["geometry"] if p]
+    if not any(min(dist(p, r["g"][k]) for k in range(0, len(r["g"]), 3)) < 40 for r in spots if r["k"] == "route" for p in g[:: max(1, len(g) // 3)]): continue
+    q = {"concrete": "3", "asphalt": "3", "concrete:lanes": "3", "paved": "2", "paving_stones": "2"}.get(t.get("surface"), "1" if t.get("surface") in ("sett", "unhewn_cobblestone", "cobblestone") else None)
+    if q: lines[q].append(g)
+
+out = {"name": "madeira", "bbox": [32.6, 33.1, -17.3, -16.25], "surf": lines, "spots": spots, "graph": {"n": [], "e": []}, "built": "2026-11-21"}
 json.dump(out, open(os.path.join(HERE, "web", "regions", "madeira.json"), "w"), ensure_ascii=False, separators=(",", ":"))
-print(len(spots), "spots;", "west", km(glen(g_west)), t_w1, t_w2, "| lido", km(glen(g_lido)), t_lido)
+print(len(spots), "spots,", sum(len(v) for v in lines.values()), "surface lines")

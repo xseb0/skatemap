@@ -1,0 +1,6 @@
+[out:json][timeout:300];
+(
+  way["highway"~"^(footway|pedestrian|cycleway|path|living_street)$"](32.6,-17.3,32.9,-17.1);
+  way["natural"="coastline"](32.6,-17.3,32.9,-17.1);
+);
+out geom tags;

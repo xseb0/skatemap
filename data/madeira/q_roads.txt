@@ -1,0 +1,7 @@
+[out:json][timeout:120];
+(
+  way["highway"]["ref"~"^(ER105|ER209|ER110)$"](32.73,-17.15,32.79,-17.03);
+  way["highway"="cycleway"](32.99,-16.42,33.10,-16.27);
+  way["highway"~"footway|pedestrian"]["name"~"[Pp]romenade|Passeio|Marginal"](32.99,-16.42,33.10,-16.27);
+);
+out geom tags;

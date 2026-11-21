@@ -2,6 +2,11 @@
 data/*/base.json
 data/*/spots.json
 data/*/prom.json
+data/*/paths[0-9].json
+data/*/roads.json
+data/*/shops.json
+data/madeira/scan.json
+data/madeira/flat.json
 data/*/*.log
 v1/skatekartan.html
 .DS_Store

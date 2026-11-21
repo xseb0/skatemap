@@ -1,0 +1,6 @@
+[out:json][timeout:60];
+(
+  nwr["shop"~"^(sports|bicycle|outdoor|surf|skate)$"](32.6,-17.3,32.9,-16.6);
+  nwr["name"~"Decathlon|Sport Zone|[Ss]kate|[Pp]atin",i]["shop"](32.6,-17.3,32.9,-16.6);
+);
+out center tags;
