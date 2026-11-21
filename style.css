@@ -108,6 +108,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .kind{font:700 11px var(--f-body);text-transform:uppercase;letter-spacing:.08em;color:var(--c)}
 .card h2{font:800 20px/1.15 var(--f-display);letter-spacing:-.01em;margin:2px 0 0;text-wrap:balance}
 .why{line-height:1.45}
+.warn{background:#C8352E;color:#fff;font-weight:600;line-height:1.4;padding:8px 10px;border-radius:8px;margin:8px 0}
 dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:13px}
 dt{color:var(--muted)} dd{margin:0;font:500 12px var(--f-mono);font-variant-numeric:tabular-nums}
 .links{display:flex;flex-wrap:wrap;gap:6px}
