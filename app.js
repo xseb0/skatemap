@@ -169,14 +169,30 @@ $("minRate").onclick = (e) => { const b = e.target.closest("button"); if (!b) re
 drawRate();
 
 // ---------- chips ----------
+// the region you are looking at = the one whose spots surround the map centre (else the nearest one)
+const regionBounds = {};
+function curRegion() {
+  const c = map.getCenter(); let best = null, bd = Infinity;
+  for (const [r, b] of Object.entries(regionBounds)) {
+    if (b.pad(0.15).contains(c)) return r;
+    const d = c.distanceTo(b.getCenter()); if (d < bd) { bd = d; best = r; }
+  }
+  return best;
+}
+// counts per type for the whole region in view (spots off screen too); types sorted with the most first
+function regionCounts() {
+  const r = curRegion(), b = r && regionBounds[r], c = {};
+  for (const s of spots) if (s.k === "mine" ? !b || b.pad(0.15).contains(s.p) : s._r === r) c[s.k] = (c[s.k] || 0) + 1;
+  const kinds = Object.entries(KINDS).filter(([k]) => c[k] || k === "mine")
+    .sort((a, b2) => (a[0] === "mine") - (b2[0] === "mine") || (c[b2[0]] || 0) - (c[a[0]] || 0));
+  return { c, kinds };
+}
 function drawChips() {
-  // counts cover what is on screen (plus a margin), so other regions do not inflate them
-  const c = {}, near = {}, bb = map.getBounds().pad(0.25);
-  for (const s of spots) { near[s.k] = 1; if (bb.contains(s.p)) c[s.k] = (c[s.k] || 0) + 1; }
+  const { c, kinds } = regionCounts();
   const allOn = Object.keys(KINDS).every((k) => st.on[k] || !c[k]);
   const nf = activeFilters();
   $("chips").innerHTML = `<span class="chip filt ${nf ? "act" : ""}"><button data-filters><svg viewBox="0 0 24 24" width="15" height="15" style="stroke:currentColor;fill:none;stroke-width:2.2"><path d="M3 5h18M6 12h12M10 19h4"/></svg>Filters${nf ? ` <span class="n">${nf}</span>` : ""}</button></span><span class="chip all ${allOn ? "" : "off"}"><button data-all>All</button></span>` +
-    Object.entries(KINDS).filter(([k]) => c[k] || st.on[k] && near[k] || k === "mine").map(([k, v]) =>
+    kinds.map(([k, v]) =>
       `<span class="chip ${st.on[k] ? "" : "off"}" style="--c:var(${v.c})"><button class="tog" data-k="${k}" aria-pressed="${!!st.on[k]}" title="Show or hide ${v.l.toLowerCase()}"><span class="dot">${glyph(k)}</span>${v.l}<span class="n">${c[k] || 0}</span></button><button class="only" data-only="${k}" title="Show only ${v.l.toLowerCase()}">only</button></span>`).join("");
 }
 $("chips").onclick = (e) => {
@@ -203,8 +219,8 @@ function toggleFilters(force) {
 const LABELS = { surf: { asphalt: "Asphalt", concrete: "Concrete", "court surface": "Court surface", "paving stones": "Paving stones", paved: "Paved (type unknown)", unknown: "Not mapped" },
   hillLv: { gentle: "Gentle 2.5–4 %", mellow: "Mellow 4–6 %", solid: "Solid 6–9 %", steep: "Steep 9–13 %", "very steep": "Very steep 13 %+" }, flatType: { court: "Courts", parking: "Car parks", schoolyard: "Schoolyards" } };
 function drawFilters() {
-  const F = st.f, c = {}; for (const s of spots) c[s.k] = (c[s.k] || 0) + 1;
-  $("fCats").innerHTML = Object.entries(KINDS).filter(([k]) => c[k] || st.on[k] && near[k] || k === "mine").map(([k, v]) =>
+  const F = st.f, { c, kinds } = regionCounts();
+  $("fCats").innerHTML = kinds.map(([k, v]) =>
     `<div class="fcat" style="--c:var(${v.c})"><label><input type="checkbox" data-cat="${k}" ${st.on[k] ? "checked" : ""}><span class="dot">${glyph(k)}</span>${v.l}<span class="n">${c[k] || 0}</span></label><button class="only" data-only="${k}">only</button></div>`).join("");
   $("nMin").value = F.nMin; $("nMax").value = F.nMax;
   for (const id of ["hasCount", "rail", "pavedEnds", "carFree", "bigPlaza", "noDirt"]) $(id).checked = !!F[id];
@@ -267,7 +283,9 @@ async function loadRegions() {
   for (const r of REGIONS) {
     try {
       const d = await (await fetch(`regions/${r}.json?v=2026-11-21e`)).json();
+      for (const x of d.spots) x._r = r;
       addSpots(d.spots);
+      if (d.spots.length) regionBounds[r] = L.latLngBounds(d.spots.map((x) => x.p));
       for (const q of ["1", "2", "3"]) surfData[q].push(...d.surf[q]);
       const off = G.n.length; G.n.push(...d.graph.n); for (const [a, b, l, q] of d.graph.e) G.e.push([a + off, b + off, l, q]);
       drawChips(); render(); drawSurf();
