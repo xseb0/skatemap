@@ -248,7 +248,7 @@ const G = { n: [], e: [] };
 async function loadRegions() {
   for (const r of REGIONS) {
     try {
-      const d = await (await fetch(`regions/${r}.json?v=2026-11-21c`)).json();
+      const d = await (await fetch(`regions/${r}.json?v=2026-11-21d`)).json();
       addSpots(d.spots);
       for (const q of ["1", "2", "3"]) surfData[q].push(...d.surf[q]);
       const off = G.n.length; G.n.push(...d.graph.n); for (const [a, b, l, q] of d.graph.e) G.e.push([a + off, b + off, l, q]);

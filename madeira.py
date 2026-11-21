@@ -160,9 +160,6 @@ SHOPS = [
     ("mad-shop-sz-forum", "Sport Zone (Fórum Madeira)", [32.63671, -16.94302], 2, "4.2 (289 reviews)", "https://www.sprintersports.com/pt", "Sport Zone Fórum Madeira",
      "May have complete recreational skates. Spare parts unlikely.",
      {"Address": "Estrada Monumental 390, Fórum Madeira, Funchal", "Hours": "daily 10–23", "Phone": "930 585 645"}),
-    ("mad-shop-cyr", "CYRmadeira (bearings supplier)", [32.64931, -16.85668], 2, "4.0 (5 reviews)", "https://cyr.pt/en/cyr-madeira", "CYRmadeira Caniço",
-     "Industrial bearings (NTN, Koyo, SNR), so standard 608 bearings, not skate-rated. Mainly sells to businesses: ask if they sell to the public.",
-     {"Address": "Rua do Ribeiro das Freiras 3, Caniço", "Hours": "Mon–Fri 9–13, 14–18", "Phone": "916 660 272"}),
 ]
 for sid, n, p, s_, rating, web, q, w, i in SHOPS:
     spots.append({"id": sid, "k": "shop", "n": n, "p": p, "s": s_, "w": w, "web": web, "gm": GM + q.replace(" ", "+"),
