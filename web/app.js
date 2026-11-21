@@ -248,7 +248,7 @@ const G = { n: [], e: [] };
 async function loadRegions() {
   for (const r of REGIONS) {
     try {
-      const d = await (await fetch(`regions/${r}.json?v=2026-11-21b`)).json();
+      const d = await (await fetch(`regions/${r}.json?v=2026-11-21c`)).json();
       addSpots(d.spots);
       for (const q of ["1", "2", "3"]) surfData[q].push(...d.surf[q]);
       const off = G.n.length; G.n.push(...d.graph.n); for (const [a, b, l, q] of d.graph.e) G.e.push([a + off, b + off, l, q]);
@@ -291,7 +291,7 @@ function render() {
   for (const s of vs) {
     const col = colorOf(s);
     const focus = sel && (sel.k === "route" || sel.k === "hill") && sel.id !== s.id;
-    if ((s.k === "route" || s.k === "hill") && s.g && z >= 13) L.polyline(s.g, { renderer: R, color: col, weight: s.k === "route" ? 4 : 5, opacity: focus ? 0.12 : s.k === "route" ? .55 : .8 }).on("click", (e) => pick(s, e)).addTo(lineLayer);
+    if ((s.k === "route" || s.k === "hill") && s.g && z >= 13) L.polyline(s.g, { renderer: R, color: col, weight: s.k === "route" ? 4 : 5, opacity: focus ? 0.12 : s.k === "route" ? .55 : .8, dashArray: s.warn ? "9 7" : null }).on("click", (e) => pick(s, e)).addTo(lineLayer);
     if (s.k === "hill" && s.g && z >= 15 && !focus) arrows(s.g, col, z, lineLayer, R);
     if (s.k === "mine") L.marker(s.p, { icon: L.divIcon({ className: "", html: `<div class="mine-pin"></div>`, iconSize: [16, 16] }), title: s.n }).on("click", (e) => pick(s, e)).addTo(spotLayer);
     else L.circleMarker(s.p, { renderer: R, radius: s.s >= 5 ? rad + 1.5 : rad, color: ink, weight: z >= 14 ? 2 : 1, fillColor: col, fillOpacity: 1 }).on("click", (e) => pick(s, e)).addTo(spotLayer);
@@ -371,7 +371,7 @@ function open(s, fly) {
     <div class="body">
       <div><div class="kind" style="--c:${col}">${esc(SUBL[s.sub] || KINDS[s.k].one)}</div><h2>${esc(s.n)}</h2>
         <div class="stars" style="margin-top:4px">${stars(s.s)} <span class="small">${s.k === "mine" ? "your spot" : /by hand/.test(s.i?.Source || "") ? "rated by hand" : "estimated from map data"}</span></div></div>
-      <div class="why">${esc(s.w)}</div>
+      ${s.warn ? `<div class="warn">⚠ ${esc(s.warn)}</div>` : ""}<div class="why">${esc(s.w)}</div>
       ${s.prof ? profSVG(s.prof, col) : ""}
       ${s.i ? `<dl>${Object.entries(s.i).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>` : ""}
       <div class="links">

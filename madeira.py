@@ -29,31 +29,35 @@ def dist(a, b):
 
 # ---------- one graph of every path and road we have ----------
 els, seen = [], set()
-for f in sorted(glob.glob(os.path.join(D, "paths[0-9].json"))) + [os.path.join(D, "roads.json"), os.path.join(D, "prom.json")]:
+for f in sorted(glob.glob(os.path.join(D, "paths[0-9].json"))) + sorted(glob.glob(os.path.join(D, "roads[0-9].json"))) + [os.path.join(D, "roads.json"), os.path.join(D, "prom.json")]:
     for e in json.load(open(f))["elements"]:
         if e["id"] in seen or not e["tags"].get("highway"): continue
         seen.add(e["id"]); els.append(e)
-adj, surf = {}, {}
+FOOT = ("footway", "pedestrian", "cycleway", "path", "steps", "living_street")
+adj, adjR, surf = {}, {}, {}  # adjR: car roads only, for the road routes
 for e in els:
     t = e["tags"]; g = [(round(p["lat"], 6), round(p["lon"], 6)) for p in e["geometry"] if p]
-    good = t.get("surface") in SMOOTH and t.get("access") != "no"
+    good = (t.get("surface") in SMOOTH or t.get("surface") is None and t.get("highway") not in FOOT) and t.get("access") != "no"
     for a, b in zip(g, g[1:]):
         w = dist(a, b) * (1 if good else 8)
-        adj.setdefault(a, []).append((b, w)); adj.setdefault(b, []).append((a, w))
-        surf[(a, b)] = surf[(b, a)] = t.get("surface", "?")
+        wf = w * (4 if t.get("highway") not in FOOT else 1)  # path routes keep off car roads
+        adj.setdefault(a, []).append((b, wf)); adj.setdefault(b, []).append((a, wf))
+        if t.get("highway") not in FOOT and not t.get("tunnel"): adjR.setdefault(a, []).append((b, w)); adjR.setdefault(b, []).append((a, w))
+        surf[(a, b)] = surf[(b, a)] = t.get("surface", "asphalt" if t.get("highway") not in FOOT else "?")
 
 
-def trace(*via):
-    """Shortest smooth way through the given points, as one polyline."""
+def trace(*via, roads=False):
+    """Shortest smooth way through the given points, as one polyline (roads=True: car roads only)."""
+    adj_ = adjR if roads else adj
     out, tot = [], {}
     for A, B in zip(via, via[1:]):
-        a = min(adj, key=lambda q: dist(A, q)); b = min(adj, key=lambda q: dist(B, q))
+        a = min(adj_, key=lambda q: dist(A, q)); b = min(adj_, key=lambda q: dist(B, q))
         best, prev, h = {a: 0}, {}, [(0, a)]
         while h:
             c, u = heapq.heappop(h)
             if u == b: break
             if c > best[u]: continue
-            for v, w in adj[u]:
+            for v, w in adj_[u]:
                 if c + w < best.get(v, 1e18): best[v] = c + w; prev[v] = u; heapq.heappush(h, (c + w, v))
         path = [b]
         while path[-1] != a: path.append(prev[path[-1]])
@@ -195,9 +199,6 @@ ROUTES = [
     ("mad-r-canical", "Caniçal seafront promenade", 2, [(32.73571, -16.73989), (32.73544, -16.74582)],
      "Paver promenade along the cliffs by the whale museum in Caniçal, on the far east. Narrow and with joints, but quiet and wild.",
      {"Environment": "coast, cliffs", "Traffic": "none", "Crowds": "quiet", "Street View": "narrow pavers"}, False),
-    ("mad-r-paulserra", "Paul da Serra plateau road (ER105/ER209)", 3, [(32.7644, -17.0822), (32.7578, -17.0972), (32.7515, -17.1115)],
-     "Asphalt road across the high plateau, mostly a gentle descent westwards from about 1,490 to 1,385 m (3–4 % on average, one dip up to about 11 %, no sharp bends on the steep bits): moorland, wind turbines, views and wide open nature. It is a road with cars, and in Portugal skaters count as pedestrians, so stay at the edge. Often in fog and wind: go on a clear day. Drive up: every road down is long and steep with hairpins.",
-     {"Environment": "mountain plateau, nature", "Traffic": "cars", "Rain": "fog and wind common", "Surface": "asphalt", "Street View": "2026: good asphalt, wide verges"}, True),
     ("mad-r-portosanto", "Porto Santo: seafront cycleway (ferry)", 5, [(33.0479, -16.3539), (33.0254, -16.3799)],
      "The longest smooth car-free route in the archipelago: 3.8 km of asphalt cycleway along the 9 km beach, gentle slopes, and the driest island. Rollerblading is explicitly allowed on the promenade. Needs the ferry from Funchal (about 2.5 h).",
      {"Environment": "coast, beach", "Traffic": "none (cycleway)", "Rain": "driest island", "Surface": "asphalt", "Slope": "gentle", "Street View": "only from the road; the cycleway itself is not shown. The town promenade is cobble"}, False),
@@ -214,6 +215,44 @@ for rid, n, s, via, w, info, check in ROUTES:
     i["Source"] = SRC
     spots.append({"id": rid, "k": "route", "n": n, "p": g[0], "g": g, "s": s, "w": w, "i": i, "f": {}})
     print(f"{n}: {km(L)} {({k: round(v) for k, v in tot.items()})} {i.get('Steepest 100 m', '')} {i.get('Sharp turns on steep parts', '')}")
+
+
+# ---------- car roads: quiet, smooth, flat stretches (madeira_roads.py, checked in Street View) ----------
+ROAD_WARN = "Car road: you share it with traffic. In Portugal skaters count as pedestrians, so keep to the edge, skate in daylight and good visibility, and wear something bright."
+ROADS = [
+    ("mad-road-madalena", "Car road: Madalena do Mar seafront (ER101)", 4, [(32.70041, -17.13508), (32.69414, -17.1265)],
+     "The old coast road through the banana village of Madalena do Mar, right along the sea. Wide and smooth asphalt, flat, and it looked quiet in Street View. A paver pavement runs next to it if cars come. Dry, sunny south-west; combine with the promenade at the west end.",
+     {"Environment": "coast, village", "Traffic": "light (local traffic)", "Street View": "2026: wide smooth asphalt, few cars, sea wall on one side"}),
+    ("mad-road-saovicente", "Car road: São Vicente coast road (ER101)", 4, [(32.8146, -17.02599), (32.81077, -17.0412)],
+     "Flat coast road at São Vicente on the north coast, between green cliffs and the sea. Smooth asphalt and little traffic in Street View. The north side is wetter: pick a dry day.",
+     {"Environment": "coast, cliffs, nature", "Traffic": "light", "Rain": "wetter side", "Street View": "2026: smooth asphalt, very few cars"}),
+    ("mad-road-paulserra", "Car road: Paul da Serra plateau (ER105/ER209)", 4, [(32.7644, -17.0822), (32.7578, -17.0972), (32.7515, -17.1115)],
+     "Asphalt road across the high plateau, a mostly gentle descent westwards from about 1,490 to 1,385 m (3–4 % on average): moorland, wind turbines, views and wide open nature. Often in fog and wind: go on a clear day. Drive up: every road down is long and steep with hairpins.",
+     {"Environment": "mountain plateau, nature", "Traffic": "tourist cars and buses", "Rain": "fog and wind common", "Street View": "2026: good asphalt, wide verges"}),
+    ("mad-road-paulserra-e", "Car road: Paul da Serra east, wind farm (ER105)", 3, [(32.75284, -17.05857), (32.76366, -17.0712)],
+     "The eastern end of the plateau road among the wind turbines and yellow broom at about 1,550 m. Smooth asphalt, wide open views. Same fog and wind warning as the rest of the plateau.",
+     {"Environment": "mountain plateau, nature", "Traffic": "tourist cars", "Rain": "fog and wind common", "Street View": "2026: smooth asphalt, empty road"}),
+    ("mad-road-fanal", "Car road: ER209 towards Fanal", 3, [(32.77932, -17.12683), (32.78677, -17.12729)],
+     "Straight plateau road through heath and old laurel trees on the way to the Fanal forest. Good asphalt, but often deep in fog: only on a clear day.",
+     {"Environment": "forest, nature", "Traffic": "tourist cars", "Rain": "fog very common", "Street View": "2026: good asphalt, fog"}),
+    ("mad-road-er105n", "Car road: ER105 north plateau (towards Porto Moniz)", 3, [(32.81639, -17.18999), (32.82409, -17.19227)],
+     "Flat stretch of the plateau road north of Fanal, through heath and woodland at about 1,000 m. Smooth asphalt with centre lines.",
+     {"Environment": "forest, nature", "Traffic": "tourist cars", "Rain": "wetter side", "Street View": "2026: smooth asphalt"}),
+    ("mad-road-lombo", "Car road: Caminho Lombo da Rocha, Prazeres", 3, [(32.7544, -17.2102), (32.75371, -17.20414)],
+     "Quiet village road on the Prazeres plateau with smooth asphalt and a pavement, close to the speed-skating track. Good for a warm-up or a few laps after the track.",
+     {"Environment": "village, farmland", "Traffic": "light (local traffic)", "Street View": "2026: smooth asphalt, quiet"}),
+]
+for rid, n, s_, via, w, info in ROADS:
+    g, tot = trace(*via, roads=True)
+    L = glen(g)
+    worst, sharp, rise = hill(g)
+    i = {"Length": km(L), "Type": "car road"}
+    i.update(info)
+    i.setdefault("Surface", "asphalt")
+    i["Steepest 100 m"] = f"{worst} %"; i["Sharp turns on steep parts"] = str(sharp); i["Height difference"] = f"{rise} m"
+    i["Source"] = SRC
+    spots.append({"id": rid, "k": "route", "n": n, "p": g[0], "g": g, "s": s_, "w": w, "warn": ROAD_WARN, "i": i, "f": {"road": True}})
+    print(f"{n}: {km(L)} steepest {worst} %, sharp {sharp}, rise {rise} m")
 
 # ---------- surface layer: the seafront and cycleways we checked ----------
 lines = {"1": [], "2": [], "3": []}

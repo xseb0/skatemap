@@ -1,0 +1,6 @@
+[out:json][timeout:300];
+(
+  way["highway"~"^(secondary|tertiary|unclassified|service|track)$"]["surface"!~"gravel|dirt|ground|unpaved|compacted|grass|sett|cobblestone|unhewn_cobblestone"]["access"!="private"](32.6,-17.3,32.9,-17.1);
+  way["highway"]["name"~"[Aa]ntiga|[Vv]elha"](32.6,-17.3,32.9,-17.1);
+);
+out geom tags;

@@ -7,6 +7,8 @@ data/*/roads.json
 data/*/shops.json
 data/madeira/scan.json
 data/madeira/flat.json
+data/*/roads[0-9].json
+data/madeira/roads_flat.json
 data/*/*.log
 v1/skatekartan.html
 .DS_Store
